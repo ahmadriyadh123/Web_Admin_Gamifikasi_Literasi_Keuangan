@@ -42,7 +42,8 @@ class ThresholdController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'player_id' => 'required|string|exists:players,PlayerId',
-            'adjustments' => 'required|array' // Contoh: {"critical": 0.40}
+            'adjustments' => 'required|array', // Contoh: {"critical": 0.40}
+            'reason'      => 'nullable|string' // <-- TAMBAHAN: Terima input reason
         ]);
 
         if ($validator->fails()) {
@@ -51,7 +52,8 @@ class ThresholdController extends Controller
 
         $this->thresholdService->manualUpdate(
             $request->input('player_id'), 
-            $request->input('adjustments')
+            $request->input('adjustments'),
+            $validated['reason'] ?? null 
         );
 
         // Kembalikan data terbaru sebagai konfirmasi

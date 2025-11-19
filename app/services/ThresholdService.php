@@ -38,8 +38,11 @@ class ThresholdService
             $currentThresholds['critical'] = min(0.95, $currentThresholds['critical'] + 0.05);
         }
 
+        // Kita set reason otomatis untuk sistem
+        $reason = "system_auto_adjustment:ignored_warning";
+
         // 3. Simpan
-        return $this->profileRepository->updateThresholds($playerId, $currentThresholds);
+        return $this->profileRepository->updateThresholds($playerId, $currentThresholds, $reason);
     }
     
     // Fungsi untuk update manual (API 30)
@@ -50,7 +53,9 @@ class ThresholdService
          
          // Gabungkan data lama dengan adjustment baru
          $newThresholds = array_merge($profile->thresholds ?? [], $adjustments);
+         // Jika admin tidak isi reason, beri default
+         $reason = $reason ?? "manual_update_by_admin";
          
-         return $this->profileRepository->updateThresholds($playerId, $newThresholds);
+         return $this->profileRepository->updateThresholds($playerId, $newThresholds, $reason);
     }
 }
