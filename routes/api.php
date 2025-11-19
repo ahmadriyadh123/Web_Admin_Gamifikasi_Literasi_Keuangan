@@ -7,7 +7,7 @@ use App\Http\Controllers\ThresholdController;
 use App\Http\Controllers\ScenarioController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\FeedbackController;
-use App\Http\Controllers\Api\PlayerController;
+use App\Http\Controllers\PlayerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,3 +38,5 @@ Route::post('/threshold/update', [ThresholdController::class, 'update']);
 Route::get('/threshold', [ThresholdController::class, 'getThresholds']);
 //api untuk daftar list player
 Route::get('/players', [PlayerController::class, 'index']);
+//api untuk detail basic player
+Route::get('/players/{id}', [PlayerController::class, 'show']);
