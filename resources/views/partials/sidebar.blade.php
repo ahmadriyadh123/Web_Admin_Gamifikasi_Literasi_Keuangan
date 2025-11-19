@@ -115,20 +115,34 @@
                         <p>Daftar Player</p>
                     </a>
                 </li>
-
-                <!-- Recommendations -->
-                <li class="nav-item">
-                    <a href="{{ route('admin.rekomendasi.index') }}" class="nav-link {{ request()->routeIs('admin.rekomendasi.index') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-lightbulb"></i>
-                        <p>Rekomendasi Pembelajaran</p>
-                    </a>
-                </li>
-                <!-- ...menu sebelumnya... -->
-                <li class="nav-item">
-                <a href="{{ route('admin.learning-path.index') }}" class="nav-link {{ request()->routeIs('admin.learning-path.index') ? 'active' : '' }}">
-                      <p>Learning Path Player</p>
-                </a>
-                </li>
+<!-- Recommendations with Submenu -->
+<li class="nav-item has-treeview {{ request()->is('admin/rekomendasi*') || request()->routeIs('admin.learning-path.index') || request()->routeIs('admin.peer-insight.index') ? 'menu-open' : '' }}">
+    <a href="#" class="nav-link {{ request()->is('admin/rekomendasi*') || request()->routeIs('admin.learning-path.index') || request()->routeIs('admin.peer-insight.index') ? 'active' : '' }}"
+       data-bs-toggle="collapse" data-bs-target="#rekomendasiSubmenu" aria-expanded="{{ request()->is('admin/rekomendasi*') || request()->routeIs('admin.learning-path.index') || request()->routeIs('admin.peer-insight.index') ? 'true' : 'false' }}">
+        <i class="nav-icon fas fa-lightbulb"></i>
+        <p>
+            Recommendations
+            <i class="right fas fa-angle-left"></i>
+        </p>
+    </a>
+    <ul class="nav nav-treeview collapse {{ request()->is('admin/rekomendasi*') || request()->routeIs('admin.learning-path.index') || request()->routeIs('admin.peer-insight.index') ? 'show' : '' }}" id="rekomendasiSubmenu">
+        <li class="nav-item">
+            <a href="{{ route('admin.rekomendasi.index') }}" class="nav-link {{ request()->routeIs('admin.rekomendasi.index') ? 'active' : '' }}">
+                <p>Rekomendasi Pembelajaran</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ route('admin.learning-path.index') }}" class="nav-link {{ request()->routeIs('admin.learning-path.index') ? 'active' : '' }}">
+                <p>Learning Path Player</p>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ route('admin.peer-insight.index') }}" class="nav-link {{ request()->routeIs('admin.peer-insight.index') ? 'active' : '' }}">
+                <p>Peer Insight</p>
+            </a>
+        </li>
+    </ul>
+</li>
             </ul>
         </nav>
         

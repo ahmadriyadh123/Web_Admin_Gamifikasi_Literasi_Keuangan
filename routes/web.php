@@ -69,3 +69,5 @@ Route::get('admin/learning_path', [PlayerController::class, 'learningPathIndex']
 Route::get('admin/learning-path', function() {
     return view('admin.learning_path.index');
 })->name('admin.learning-path.index');
+
+Route::view('admin/peer-insight', 'admin.peer_insight.index')->name('admin.peer-insight.index');
