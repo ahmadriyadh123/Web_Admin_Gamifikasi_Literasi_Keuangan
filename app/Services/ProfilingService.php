@@ -63,6 +63,47 @@ class ProfilingService
         $this->ann = $ann;
         $this->cosine = $cosine;
     }
+
+        /**
+     * Mendapatkan status profiling untuk pemain tertentu.
+     */
+    public function getProfilingStatus(string $playerId)
+    {
+        $profile = PlayerProfile::find($playerId);
+
+        if (!$profile) {
+            return [
+                'player_id' => $playerId,
+                'status' => 'needed',
+                'message' => 'Player profile record not found.'
+            ];
+        }
+
+        if (!empty($profile->cluster)) {
+            return [
+                'player_id' => $playerId,
+                'status' => 'completed',
+                'cluster' => $profile->cluster,
+                'level' => $profile->level,
+                'timestamp' => $profile->last_updated
+            ];
+        }
+        
+        if (!empty($profile->onboarding_answers)) {
+            return [
+                'player_id' => $playerId,
+                'status' => 'processing',
+                'message' => 'Answers received, waiting for calculation.'
+            ];
+        }
+
+        return [
+            'player_id' => $playerId,
+            'status' => 'needed',
+            'message' => 'Player needs to submit onboarding answers.'
+        ];
+    }
+    
     public function saveOnboardingAnswers(array $input)
     {
         $player = PlayerProfile::updateOrCreate(
@@ -82,7 +123,6 @@ class ProfilingService
             'session_id' => $input['session_id'],
         ];
     }
-
     public function runProfilingCluster(string $playerId)
     {
         $input = ProfilingInput::where('player_id', $playerId)->latest()->first();
