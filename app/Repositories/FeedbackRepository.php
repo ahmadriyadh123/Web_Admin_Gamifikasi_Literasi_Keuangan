@@ -9,13 +9,17 @@ class FeedbackRepository
     // Mencatat log feedback ke tabel telemetry
     public function logIntervention(array $data)
     {
-        return Telemetry::create([
-            'playerId' => $data['player_id'],
-            // Gunakan session_id dari context, atau null jika tidak ada
-            'sessionId' => $data['session_context']['session_id'] ?? null, 
-            'action' => 'intervention_feedback',
-            'details' => $data, // Laravel otomatis convert array ke JSON
-            'created_at' => now()
-        ]);
-    }
+    return Telemetry::create([
+                'playerId'   => $data['player_id'],
+                'sessionId'  => $data['session_context']['session_id'] ?? null,
+                
+                'turn_id'    => $data['session_context']['turn_id'] ?? 0, 
+                'tile_id'    => $data['session_context']['tile_id'] ?? 0,
+
+                'action'     => 'intervention_feedback',
+                'details'    => $data,
+                'metadata'   => [], 
+                'created_at' => now()
+            ]);
+        }
 }
