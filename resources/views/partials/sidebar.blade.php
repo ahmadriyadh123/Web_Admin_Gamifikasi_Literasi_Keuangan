@@ -115,6 +115,7 @@
                         <p>Daftar Player</p>
                     </a>
                 </li>
+<<<<<<< HEAD
 <!-- Recommendations with Submenu -->
 <li class="nav-item has-treeview {{ request()->is('admin/rekomendasi*') || request()->routeIs('admin.learning-path.index') || request()->routeIs('admin.peer-insight.index') ? 'menu-open' : '' }}">
     <a href="#" class="nav-link {{ request()->is('admin/rekomendasi*') || request()->routeIs('admin.learning-path.index') || request()->routeIs('admin.peer-insight.index') ? 'active' : '' }}"
@@ -147,6 +148,21 @@
         </nav>
         
                 <!-- Player Profiling is accessible from Daftar Player (inline), so separate search removed -->
+=======
+<<<<<<< HEAD
+=======
+
+                <!-- Players Management -->
+                <li class="nav-item">
+                    <a href="{{ url('/admin/players') }}" class="nav-link {{ request()->is('admin/players') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-users"></i>
+                        <p>Daftar Player</p>
+                    </a>
+                </li>
+
+                <!-- Player Profiling is accessible from Daftar Player (inline), so separate search removed -->
+>>>>>>> 3ddae518f9615e7fac29b983be519f8b6ad5b078
+>>>>>>> Gamifikasi_Literasi_Keuangan/micky
                 
             </ul>
         </nav>
@@ -220,8 +236,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+<<<<<<< HEAD
 
 // openPlayerProfiling removed: profiling is now accessed inline from Daftar Player page
+=======
+<<<<<<< HEAD
+=======
+
+// openPlayerProfiling removed: profiling is now accessed inline from Daftar Player page
+>>>>>>> 3ddae518f9615e7fac29b983be519f8b6ad5b078
+>>>>>>> Gamifikasi_Literasi_Keuangan/micky
 </script>
 
 <style>
