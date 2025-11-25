@@ -4,10 +4,8 @@ namespace App\Services;
 
 use App\Services\AI\FuzzyService;
 use App\Services\AI\ANNService;
-use App\Services\AI\CosineSimilarityService;
 use App\Models\PlayerProfile;
 use App\Models\ProfilingInput;
-use App\Models\ProfilingResult;
 
 class ProfilingService
 {
@@ -57,11 +55,9 @@ class ProfilingService
     public function __construct(
         FuzzyService $fuzzy,
         ANNService $ann,
-        CosineSimilarityService $cosine
     ) {
         $this->fuzzy = $fuzzy;
         $this->ann = $ann;
-        $this->cosine = $cosine;
     }
 
         /**
@@ -156,94 +152,6 @@ class ProfilingService
             'profiling_version' => 2,
             'generated_at' => now()->toISOString(),
         ];
-    }
-
-    public function recommendNextQuestion(string $playerId)
-    {
-        $profile = PlayerProfile::findOrFail($playerId);
-        $userScores = json_decode($profile->lifetime_scores, true);
-        
-        $weakestCategory = $this->findWeakestCategory($userScores);
-        $userWeakestScore = $userScores[$weakestCategory];
-
-        $questions = DB::table('scenarios')
-                        ->where('category', $weakestCategory)
-                        ->get();
-
-        if ($questions->isEmpty()) {
-            return ['error' => 'No questions found for the weakest category'];
-        }
-
-        $bestQuestion = null;
-        $maxSimilarity = -1;
-
-        $userVector = $this->prepareVector($userScores);
-        
-        foreach ($questions as $question) {
-            if ($question->difficulty <= $userWeakestScore) {
-                continue;
-            }
-
-            $questionVector = $this->createQuestionVector($question->category, $question->difficulty, array_keys($userScores));
-            
-            $similarity = $this->cosine->calculate($userVector, $questionVector);
-
-            if ($similarity > $maxSimilarity) {
-                $maxSimilarity = $similarity;
-                $bestQuestion = $question;
-            }
-        }
-
-        if ($bestQuestion) {
-            return [
-                'recommendation' => $bestQuestion,
-                'similarity_score' => $maxSimilarity,
-                'user_weakest_category' => $weakestCategory,
-                'user_score' => $userWeakestScore,
-            ];
-        }
-
-        return ['error' => 'No suitable challenging question found'];
-    }
-
-    private function findWeakestCategory(array $scores): string
-    {
-        asort($scores);
-        return array_key_first($scores);
-    }
-
-    private function prepareVector(array $scores): array
-    {
-        $categories = [
-            'pendapatan',
-            'anggaran',
-            'tabungan_dan_dana_darurat',
-            'utang',
-            'investasi',
-            'asuransi_dan_proteksi',
-            'tujuan_jangka_panjang'
-        ];
-        $vector = [];
-        foreach ($categories as $category) {
-            $scoreKey = str_replace('_', ' ', strtolower($category));
-            $scoreKey = str_replace('dan', '&', $scoreKey);
-            
-            $vector[] = $scores[$category] ?? 0;
-        }
-        return $vector;
-    }
-
-    private function createQuestionVector(string $category, float $difficulty, array $allCategories): array
-    {
-        $normalizedCategory = strtolower(str_replace(' ', '_', $category));
-        
-        $vector = array_fill_keys($allCategories, 0);
-        
-        if (array_key_exists($normalizedCategory, $vector)) {
-            $vector[$normalizedCategory] = $difficulty;
-        }
-        
-        return $this->prepareVector($vector);
     }
 }
 
