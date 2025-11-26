@@ -5,9 +5,8 @@ use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\LeaderboardController;
 
-// Main routes
 Route::get('/', function () {
-    return view('admin.dashboard');
+    return view('welcome');
 });
 
 Route::get('/dashboard', function () {

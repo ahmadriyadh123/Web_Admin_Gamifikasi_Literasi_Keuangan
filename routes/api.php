@@ -49,3 +49,12 @@ Route::get('/players', [PlayerController::class, 'apiIndex']);
 
 // api untuk detail basic player
 Route::get('/players/{id}', [PlayerController::class, 'show']);
+
+Route::get('/tile/{id}', [BoardController::class, 'getTile']);
+Route::get('/card/quiz/{id}', [CardController::class, 'getQuizCard']);
+Route::get('/player/{id}/profile', [PlayerController::class, 'getProfile']);
+Route::post('/profiling/submit', [PlayerController::class, 'submitProfiling']);
+Route::post('/session/turn/start', [SessionController::class, 'startTurn']);
+Route::post('/session/player/move', [SessionController::class, 'movePlayer']);
+Route::post('/session/turn/end', [SessionController::class, 'endTurn']);
+Route::post('/session/end/{sessionId}', [SessionController::class, 'endSession']); 

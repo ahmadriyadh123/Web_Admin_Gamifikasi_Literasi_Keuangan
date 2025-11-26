@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Player extends Model
 {
     use HasFactory;
+    protected $table = 'players';
     protected $primaryKey = 'PlayerId';
     public $incrementing = false;
     protected $keyType = 'string';
@@ -22,5 +23,18 @@ class Player extends Model
     public function participations()
     {
         return $this->hasMany(ParticipatesIn::class, 'playerId', 'PlayerId');
+    }
+
+    /**
+     * Mendefinisikan relasi ke profil AI pemain.
+     */
+    public function profile()
+    {
+        return $this->hasOne(PlayerProfile::class, 'PlayerId', 'PlayerId');
+    }
+
+    public function gameSessions() {
+        return $this->belongsToMany(Session::class, 'ParticipatesIn', 'playerId', 'sessionId')
+                    ->withPivot('score', 'position', 'color', 'status');
     }
 }
