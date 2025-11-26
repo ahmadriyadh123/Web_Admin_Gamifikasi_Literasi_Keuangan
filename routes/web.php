@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AdminAuthController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\LeaderboardController;
 
@@ -9,9 +9,13 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('admin.dashboard');
-})->name('dashboard');
+/*
+|--------------------------------------------------------------------------
+| Login Routes
+|--------------------------------------------------------------------------
+*/
+Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
 
 // Leaderboard (alias lama)
 Route::get('/leaderboard', function () {
@@ -23,58 +27,79 @@ Route::get('/admin/config', function () {
     return view('admin.config.index');
 })->name('admin.config');
 
-Route::get('/admin/config/edit', function () {
-    return view('admin.config.edit');
-})->name('admin.config.edit');
+/*
+|--------------------------------------------------------------------------
+| Protected Routes (auth required)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->group(function () {
 
-Route::get('/admin/config/sync', function () {
-    return view('admin.config.sync');
-})->name('admin.config.sync');
+    /*
+    |--------------------------------------------------------------------------
+    | ADMIN ROUTES (role:admin)
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
 
-// Admin players leaderboard
-Route::get('/admin/players/leaderboard', function () {
-    return view('admin.players.leaderboard');
-})->name('admin.players.leaderboard');
+        // Dashboard
+        Route::view('/dashboard', 'admin.dashboard')->name('dashboard');
 
-// Admin content management routes
-Route::get('/admin/content/scenarios', function () {
-    return view('admin.content.scenarios');
-})->name('admin.content.scenarios');
+        // Config pages
+        Route::view('/config', 'admin.config.index')->name('config');
+        Route::view('/config/edit', 'admin.config.edit')->name('config.edit');
+        Route::view('/config/sync', 'admin.config.sync')->name('config.sync');
 
-Route::get('/admin/content/cards', function () {
-    return view('admin.content.cards');
-})->name('admin.content.cards');
+        // Content management
+        Route::view('/content/scenarios', 'admin.content.scenarios')->name('content.scenarios');
+        Route::view('/content/cards', 'admin.content.cards')->name('content.cards');
+        Route::view('/content/quiz', 'admin.content.quiz')->name('content.quiz');
 
-Route::get('/admin/content/quiz', function () {
-    return view('admin.content.quiz');
-})->name('admin.content.quiz');
+        // Players management
+        Route::get('/players', [PlayerController::class, 'index'])->name('players');
+        Route::get('/players/{id}/profiling', [PlayerController::class, 'profilingView'])->name('players.profiling');
 
-// Admin login routes
-Route::get('/admin/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
-Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('admin.login.post');
+        // Leaderboard
+        Route::view('/players/leaderboard', 'admin.players.leaderboard')->name('players.leaderboard');
 
-// Player management
-Route::get('/admin/players', [PlayerController::class, 'index'])->name('admin.players');
-Route::get('/admin/players/{id}/profiling', [PlayerController::class, 'profilingView'])->name('admin.players.profiling');
+        // Rekomendasi
+        Route::get('/rekomendasi-lanjutan', [PlayerController::class, 'rekomendasiIndex'])->name('rekomendasi.index');
 
-// Lightweight profiling API
-Route::get('/profiling/details', [PlayerController::class, 'profilingDetails'])->name('profiling.details');
-Route::get('/profiling/cluster', [PlayerController::class, 'profilingCluster'])->name('profiling.cluster');
-Route::get('/api/players', [PlayerController::class, 'apiPlayers'])->name('api.players');
+        // Learning Path
+        Route::get('/learning-path', [PlayerController::class, 'learningPathIndex'])->name('learning-path.index');
+        Route::view('/peer-insight', 'admin.peer_insight.index')->name('peer-insight.index');
+    });
 
-// Rekomendasi lanjutan
-Route::prefix('admin')->name('admin.')->group(function () {
-    Route::get('rekomendasi-lanjutan', [PlayerController::class, 'rekomendasiIndex'])->name('rekomendasi.index');
+    /*
+    |--------------------------------------------------------------------------
+    | PLAYER ROUTES (role:player)
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['role:player'])->prefix('player')->name('player.')->group(function () {
+
+        // Dashboard player
+        Route::view('/dashboard', 'player.dashboard')->name('dashboard');
+
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | JSON / API Routes (tidak butuh role, hanya butuh login)
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/profiling/details', [PlayerController::class, 'profilingDetails'])->name('profiling.details');
+    Route::get('/profiling/cluster', [PlayerController::class, 'profilingCluster'])->name('profiling.cluster');
+    Route::get('/api/players', [PlayerController::class, 'apiPlayers'])->name('api.players');
+
+    // Recommendation next API
+    Route::post('/recommendation/next', [PlayerController::class, 'recommendationNext'])->name('recommendation.next');
 });
 
-Route::post('recommendation/next', [PlayerController::class, 'recommendationNext'])->name('recommendation.next');
 
-// Learning Path
-Route::get('admin/learning_path', [PlayerController::class, 'learningPathIndex'])->name('admin.learning-path.index');
-
-Route::get('admin/learning-path', function () {
-    return view('admin.learning_path.index');
-})->name('admin.learning-path.index');
-
-// Peer Insight
-Route::view('admin/peer-insight', 'admin.peer_insight.index')->name('admin.peer-insight.index');
+/*
+|--------------------------------------------------------------------------
+| Backward compatibility alias: /leaderboard
+|--------------------------------------------------------------------------
+*/
+Route::get('/leaderboard', function () {
+    return view('admin.players.leaderboard');
+})->name('leaderboard');
