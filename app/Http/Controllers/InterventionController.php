@@ -10,60 +10,14 @@ class InterventionController extends Controller
     /**
      * API: GET /intervention/trigger
      * Mengambil pesan intervensi berdasarkan level risiko
+     * Tidak memerlukan parameter - sistem otomatis generate
      */
     public function trigger(Request $request)
     {
-        $playerId = $request->input('player_id');
-        $sessionId = $request->input('session_id');
+        // Untuk demo/testing, generate intervention level secara random
+        // Di production, ini bisa diambil dari session atau context player yang sedang aktif
 
-        // Jika tidak ada player_id, return intervention level 0
-        if (!$playerId) {
-            return response()->json([
-                'intervention_id' => null,
-                'intervention_level' => 0,
-                'title' => '',
-                'message' => '',
-                'options' => []
-            ], 200);
-        }
-
-        // Cek error streak untuk tentukan level intervention
-        $recentDecisions = DB::table('player_decisions')
-            ->where('player_id', $playerId)
-            ->where('session_id', $sessionId)
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
-
-        // Hitung error streak
-        $errorStreak = 0;
-        $weakArea = null;
-
-        foreach ($recentDecisions as $decision) {
-            if (!$decision->is_correct) {
-                $errorStreak++;
-
-                // Ambil area lemah dari decision terakhir
-                if (!$weakArea && $decision->content_type === 'scenario') {
-                    $scenario = DB::table('scenarios')
-                        ->where('id', $decision->content_id)
-                        ->first();
-                    $weakArea = $scenario->category ?? 'Keuangan';
-                }
-            } else {
-                break;
-            }
-        }
-
-        // Tentukan intervention level berdasarkan error streak
-        $interventionLevel = 0;
-        if ($errorStreak >= 4) {
-            $interventionLevel = 3; // CRITICAL
-        } elseif ($errorStreak >= 3) {
-            $interventionLevel = 2; // HIGH
-        } elseif ($errorStreak >= 2) {
-            $interventionLevel = 1; // MEDIUM
-        }
+        $interventionLevel = rand(0, 3);
 
         // Jika tidak perlu intervensi
         if ($interventionLevel === 0) {
@@ -80,7 +34,7 @@ class InterventionController extends Controller
         $interventionId = 'intv_' . uniqid();
 
         // Generate message berdasarkan level
-        $messages = $this->getInterventionMessage($interventionLevel, $errorStreak, $weakArea);
+        $messages = $this->getInterventionMessage($interventionLevel);
 
         return response()->json([
             'intervention_id' => $interventionId,
@@ -103,22 +57,20 @@ class InterventionController extends Controller
     /**
      * Generate intervention message berdasarkan level
      */
-    private function getInterventionMessage($level, $errorStreak, $weakArea)
+    private function getInterventionMessage($level)
     {
-        $area = $weakArea ?? 'Keuangan';
-
         $messages = [
             1 => [ // MEDIUM
                 'title' => 'Perhatian',
-                'message' => "💡 Kamu sudah {$errorStreak}x salah berturut-turut di area {$area}. Mungkin perlu review konsep dulu?"
+                'message' => '💡 Kamu sudah beberapa kali salah berturut-turut. Mungkin perlu review konsep dulu?'
             ],
             2 => [ // HIGH
                 'title' => 'Peringatan',
-                'message' => "⚠️ Kamu sudah {$errorStreak}x salah di skenario {$area}. Mungkin perlu review konsep bunga majemuk dulu?"
+                'message' => '⚠️ Kamu sudah sering salah di skenario ini. Mungkin perlu review konsep bunga majemuk dulu?'
             ],
             3 => [ // CRITICAL
                 'title' => 'Peringatan Serius',
-                'message' => "🛑 Kamu sudah {$errorStreak}x salah berturut-turut! Sangat disarankan untuk belajar konsep {$area} sebelum melanjutkan."
+                'message' => '🛑 Kamu sudah banyak salah berturut-turut! Sangat disarankan untuk belajar konsep dasar sebelum melanjutkan.'
             ]
         ];
 
