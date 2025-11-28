@@ -6,11 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Player extends Model
 {
-    protected $table = 'players'; 
+    protected $table = 'players';
     protected $primaryKey = 'PlayerId';
     public $incrementing = false;
     protected $keyType = 'string';
-
     protected $fillable = [
         'PlayerId',
         'user_id',
@@ -19,7 +18,7 @@ class Player extends Model
         'gamesPlayed',
         'initial_platform',
         'locale',
-        'createdAt',
-        'updatedAt'
+        'updated_at',
+        'created_at'
     ];
 }

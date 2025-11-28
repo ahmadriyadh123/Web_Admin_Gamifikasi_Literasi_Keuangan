@@ -22,8 +22,12 @@ class ProfilingController extends Controller
      */
     public function status(Request $request)
     {
+        $user = $request->user();
+        if (!$user || !$user->player) {
+            return response()->json(['error' => 'Player data not found'], 404);
+        }
+        $playerId = $user->player->PlayerId;
         $result = $this->profilingService->getProfilingStatus($playerId);
-
         return response()->json($result);
     }
 
@@ -49,10 +53,18 @@ class ProfilingController extends Controller
     /**
      * Menjalankan proses clustering profiling untuk player tertentu.
      */
-    public function cluster($playerId)
+    public function cluster(Request $request)
     {
+        $user = $request->user();
+        if (!$user || !$user->player) {
+            return response()->json(['error' => 'Player not found'], 404);
+        }
+        $playerId = $user->player->PlayerId;
+    
         $result = $this->profilingService->runProfilingCluster($playerId);
-        return response()->json($result);
+        if (isset($result['error'])) {
+            return response()->json($result, 400);
+        }
+        return response()->json($result, 200);
     }
-
 }

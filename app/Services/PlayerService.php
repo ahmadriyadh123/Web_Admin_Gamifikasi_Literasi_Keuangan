@@ -16,17 +16,15 @@ class PlayerService
      * Menangani Login dengan Google
      * Sesuai API Versi 3: POST /auth/google
      */
-public function loginWithGoogle(array $data)
+    public function loginWithGoogle(array $data)
     {
         $idToken = $data['google_id_token'];
         $platform = $data['platform'] ?? 'web';
         $locale = $data['locale'] ?? 'id_ID';
 
-        // --- 1. Verifikasi Token Google ---
-        // $googleId = 'google_test_user_001';
-        // $email = 'tester@example.com';
-        // $name = 'Mona Tester';
-        // $avatar = 'https://ui-avatars.com/api/?name=Mona+Tester';
+        // $googleId = 'google_id_tester_001'; 
+        // $name = 'Tester Postman';
+        // $avatar = 'https://ui-avatars.com/api/?name=Tester+Postman';
         
         $client = new Google_Client(['client_id' => env('GOOGLE_CLIENT_ID')]);
         try {
@@ -38,12 +36,10 @@ public function loginWithGoogle(array $data)
         if (!$payload) {
              throw new \Exception("Invalid Google Token (Wrong format or expired)");
         }
-
         $googleId = $payload['sub'];
         $email = $payload['email'];
         $name = $payload['name'];
         $avatar = $payload['picture'] ?? null;
-
 
         return DB::transaction(function () use ($googleId, $name, $avatar, $platform, $locale) {
             $user = User::firstOrCreate(
@@ -81,7 +77,6 @@ public function loginWithGoogle(array $data)
                     'last_updated' => now(),
                 ]);
             }
-
             return $this->generateTokens($user, $player, $isNewUser);
         });
     }
@@ -143,7 +138,7 @@ public function loginWithGoogle(array $data)
 
         return [
             'access_token' => $newAccessToken,
-            'expires_in' => 3600 
+            'expires_in' => 3600
         ];
     }
 }
