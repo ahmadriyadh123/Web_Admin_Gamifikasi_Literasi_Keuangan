@@ -22,14 +22,6 @@ class ProfilingController extends Controller
      */
     public function status(Request $request)
     {
-        $playerId = $request->query('player_id');
-        
-        if (!$playerId) {
-            return response()->json([
-                'error' => 'player_id is required'
-            ], 400);
-        }
-
         $result = $this->profilingService->getProfilingStatus($playerId);
 
         return response()->json($result);
@@ -40,8 +32,18 @@ class ProfilingController extends Controller
      */
     public function submit(ProfilingSubmitRequest $request)
     {
-        $result = $this->profilingService->saveOnboardingAnswers($request->validated());
-        return response()->json($result);
+        $user = $request->user();
+        if (!$user || !$user->player) {
+            return response()->json(['error' => 'Player not found'], 404);
+        }
+        $playerId = $user->player->PlayerId;
+        $validatedData = $request->validated();
+        $this->profilingService->saveOnboardingAnswers([
+            'player_id' => $playerId,
+            'answers' => $validatedData['answers'],
+            'profiling_done' => $validatedData['profiling_done'] ?? false 
+        ]);
+        return response()->json(['ok' => true]);
     }
 
     /**

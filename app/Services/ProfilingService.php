@@ -102,23 +102,21 @@ class ProfilingService
     
     public function saveOnboardingAnswers(array $input)
     {
-        $player = PlayerProfile::updateOrCreate(
+        PlayerProfile::updateOrCreate(
             ['PlayerId' => $input['player_id']],
             [
                 'onboarding_answers' => json_encode($input['answers']),
-                'locale' => $input['locale'],
                 'last_updated' => now(),
             ]
         );
-
+        if (!empty($input['profiling_done']) && $input['profiling_done'] === true) {
+            // $this->runProfilingCluster($input['player_id']);
+        }
         return [
-            'player_id' => $input['player_id'],
-            'onboarding_answers' => $input['answers'],
-            'platform' => $input['platform'],
-            'status' => 'recorded',
-            'session_id' => $input['session_id'],
+            'ok' => true
         ];
     }
+
     public function runProfilingCluster(string $playerId)
     {
         $input = ProfilingInput::where('player_id', $playerId)->latest()->first();
