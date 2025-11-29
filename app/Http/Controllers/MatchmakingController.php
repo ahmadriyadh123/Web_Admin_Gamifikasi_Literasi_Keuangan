@@ -44,7 +44,7 @@ class MatchmakingController extends Controller
         ]);
         
         $user = $request->user();
-        if (!$user || $user->player) {
+        if (!$user || !$user->player) {
             return response()->json(['error' => 'Player profile not found'], 404);
         }
         try {

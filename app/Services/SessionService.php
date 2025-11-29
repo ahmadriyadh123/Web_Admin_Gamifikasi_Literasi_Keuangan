@@ -99,7 +99,7 @@ class SessionService
             return [
                 'player_id' => $p->playerId,
                 'username' => $p->player->name ?? 'Unknown', // Ambil dari relasi player
-                'avatar' => $p->player->avatar_url ?? null,
+                'avatar_url' => $p->player->avatar_url ?? null,
                 'is_ready' => (bool) $p->is_ready,
                 'is_host' => $p->playerId === $session->host_player_id
             ];
@@ -125,7 +125,7 @@ class SessionService
             throw new (\Exception(message: "Player not found"));
         }
         $player->character_id = $characterId;
-        $player->avatar = $this->getAvatarUrlForCharacter($characterId);
+        $player->avatar_url = $this->getAvatarUrlForCharacter($characterId);
         $player->save();
 
         return [ 'ok' => true ];

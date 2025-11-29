@@ -61,7 +61,41 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/leaderboard', [LeaderboardController::class, 'getLeaderboard']);
 });
 
+Route::get('/debug/list-matchmaking-routes', function () {
+    $routes = [];
+    foreach (Route::getRoutes() as $route) {
+        // Kita hanya cari yang url-nya mengandung 'matchmaking'
+        if (str_contains($route->uri(), 'matchmaking')) {
+            $routes[] = [
+                'method' => implode('|', $route->methods()),
+                'uri'    => $route->uri(), // Ini alamat yang HARUS Anda ketik di Postman
+                'action' => $route->getActionName(),
+            ];
+        }
+    }
+    
+    if (empty($routes)) {
+        return [
+            'status' => 'WARNING',
+            'message' => 'Tidak ada rute matchmaking yang terdaftar! Cek kode routes/api.php Anda.'
+        ];
+    }
 
+    return [
+        'status' => 'OK',
+        'registered_routes' => $routes
+    ];
+});
+
+// --- DEBUGGING MATCHMAKING (HAPUS SAAT PRODUCTION) ---
+Route::get('/debug/matchmaking', function () {
+    return [
+        'total_sessions' => \App\Models\GameSession::count(),
+        'sessions_waiting' => \App\Models\GameSession::where('status', 'waiting')->get(),
+        'all_participants' => \App\Models\ParticipatesIn::orderBy('sessionId')->orderBy('player_order')->get(),
+        'config' => \App\Models\Config::first()
+    ];
+});
 
 Route::get('/debug-sanctum', function (Request $request) {
     $tokenString = $request->bearerToken();
