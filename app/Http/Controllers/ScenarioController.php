@@ -20,20 +20,17 @@ class ScenarioController extends Controller
      */
     public function show(Request $request, $scenarioId)
     {
-        // 1. Ambil User dari Token
         $user = $request->user();
         if (!$user || !$user->player) {
             return response()->json(['error' => 'Player profile not found'], 404);
         }
 
         try {
-            // 2. Panggil Service
             $result = $this->scenarioService->getScenarioDetail(
-                $user->player->PlayerId, 
+                $user->player->PlayerId,
                 $scenarioId
             );
 
-            // Handle jika tidak ketemu
             if (isset($result['error'])) {
                 return response()->json($result, 404);
             }

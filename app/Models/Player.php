@@ -37,7 +37,7 @@ class Player extends Model
     }
 
     public function gameSessions() {
-        return $this->belongsToMany(Session::class, 'ParticipatesIn', 'playerId', 'sessionId')
+        return $this->belongsToMany(GameSession::class, 'ParticipatesIn', 'playerId', 'sessionId')
                     ->withPivot('score', 'position', 'color', 'status');
     }
 }

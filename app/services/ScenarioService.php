@@ -43,7 +43,7 @@ class ScenarioService
             'question' => $scenario->question,
             'options' => $scenario->options->map(function ($opt) {
                 return [
-                    'id' => $opt->optionId, // "A", "B"
+                    'id' => $opt->optionId,
                     'text' => $opt->text
                 ];
             }),
@@ -77,7 +77,7 @@ class ScenarioService
 
             $scoreChanges = $option->scoreChange ?? [];
             if (!is_array($scoreChanges)) {
-                $scoreChanges = []; 
+                $scoreChanges = [];
             }
             $currentScores = $profile->lifetime_scores ?? [];
 

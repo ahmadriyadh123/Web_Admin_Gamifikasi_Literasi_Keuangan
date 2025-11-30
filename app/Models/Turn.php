@@ -8,7 +8,7 @@ class Turn extends Model
 {
     protected $table = 'turns';
     protected $primaryKey = 'turn_id';
-    public $incrementing = false; 
+    public $incrementing = false;
     protected $keyType = 'string';
     protected $guarded = [];
     public $timestamps = true;
@@ -21,6 +21,6 @@ class Turn extends Model
     }
     
     public function session() {
-        return $this->belongsTo(Session::class, 'session_id', 'sessionId');
+        return $this->belongsTo(GameSession::class, 'session_id', 'sessionId');
     }
 }

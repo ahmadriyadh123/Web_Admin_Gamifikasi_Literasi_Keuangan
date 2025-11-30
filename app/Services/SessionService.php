@@ -216,7 +216,8 @@ class SessionService {
 
             if ($newPosition < $currentPosition) {
                 // Logika "Pass Go" (Dapat uang) bisa ditaruh di sini
-                // $participation->score += 200; 
+                // $participation->score += 200;
+                
             }
 
             $gameState['prev_position'] = $currentPosition;
@@ -271,21 +272,21 @@ class SessionService {
         $eventId = null;
 
         if ($tile) {
-            $eventType = $tile->type; 
+            $eventType = $tile->type;
             $linkedContent = json_decode($tile->linked_content, true);
             $eventId = $linkedContent['id'] ?? $tile->tile_id;
         }
 
         $actionData = [
             'dice_value' => $gameState['last_dice'] ?? 0,
-            'from_tile' => $gameState['prev_position'] ?? ($currentPos - ($gameState['last_dice'] ?? 0)), 
+            'from_tile' => $gameState['prev_position'] ?? ($currentPos - ($gameState['last_dice'] ?? 0)),
             'to_tile' => $currentPos,
             'landed_event_type' => $eventType,
             'landed_event_id' => $eventId
         ];
 
         if ($actionData['from_tile'] < 0) {
-            $totalTiles = BoardTile::count() ?: 20; 
+            $totalTiles = BoardTile::count() ?: 20;
             $actionData['from_tile'] += $totalTiles;
         }
 
