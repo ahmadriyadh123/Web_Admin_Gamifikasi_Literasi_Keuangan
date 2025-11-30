@@ -58,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/start', [SessionController::class, 'startTurn']);
             Route::post('/roll', [SessionController::class, 'roll']);
             Route::get('/current', [SessionController::class, 'currentTurn']);
+            Route::post('/end', [SessionController::class, 'endTurn']);
         });
         Route::post('/player/move', [SessionController::class, 'move']);
     });

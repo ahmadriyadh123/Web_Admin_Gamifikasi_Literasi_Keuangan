@@ -280,4 +280,61 @@ class SessionService {
             'current_turn_action' => $actionData
         ];
     }
+
+    public function endTurn(string $playerId)
+    {
+        // 1. Cari Sesi Aktif dengan Lock (untuk update data sensitif)
+        $participation = ParticipatesIn::where('playerId', $playerId)
+            ->whereHas('session', fn($q) => $q->where('status', 'active'))
+            ->with(['session.participants']) // Load semua peserta untuk hitung urutan
+            ->first();
+
+        if (!$participation) {
+            return ['error' => 'Player is not in an active session'];
+        }
+
+        $session = $participation->session;
+
+        // 2. Validasi Giliran
+        if ($session->current_player_id !== $playerId) {
+            return ['error' => 'It is not your turn to end'];
+        }
+
+        // 3. Logika Rotasi Pemain
+        // Urutkan peserta berdasarkan player_order (1, 2, 3...)
+        $participants = $session->participants->sortBy('player_order')->values();
+        
+        // Cari index pemain saat ini di dalam list
+        $currentIndex = $participants->search(function ($p) use ($playerId) {
+            return $p->playerId === $playerId;
+        });
+
+        if ($currentIndex === false) {
+            return ['error' => 'Player participation data error'];
+        }
+
+        // Hitung Index Berikutnya (Looping)
+        // Rumus: (Index Sekarang + 1) MOD Total Pemain
+        $nextIndex = ($currentIndex + 1) % $participants->count();
+        $nextPlayer = $participants[$nextIndex];
+
+        // 4. Update Session Data
+        $session->current_player_id = $nextPlayer->playerId;
+        $session->current_turn += 1; // Increment nomor giliran global
+
+        // Reset Game State untuk pemain berikutnya
+        $gameState = json_decode($session->game_state, true) ?? [];
+        $gameState['turn_phase'] = 'waiting'; // Set ke waiting agar next player bisa Start
+        $gameState['last_dice'] = 0; // Reset dadu
+        
+        $session->game_state = json_encode($gameState);
+        $session->save();
+
+        // 5. Return Response
+        return [
+            'turn_phase' => 'completed',
+            'next_turn_player_id' => $nextPlayer->playerId,
+            'turn_number' => $session->current_turn
+        ];
+    }
 }

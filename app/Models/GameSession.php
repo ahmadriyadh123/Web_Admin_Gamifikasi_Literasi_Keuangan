@@ -20,8 +20,7 @@ class GameSession extends Model
 
     // Relasi ke semua pemain di sesi ini (via tabel pivot)
     public function participants() {
-        return $this->belongsToMany(Player::class, 'participatesin', 'sessionId', 'playerId')
-                    ->withPivot('score', 'position', 'connection_status', 'is_ready');
+        return $this->hasMany(ParticipatesIn::class, 'sessionId', 'sessionId');
     }
 
     // Relasi ke semua giliran (turns) dalam sesi ini
