@@ -13,6 +13,10 @@ class SessionController extends Controller
             $this->sessionService = $sessionService;
         }
 
+    /**
+     * Retrieve the current state of the game session for the authenticated player.
+     * 
+     */
     public function state(Request $request){
         $user = $request->user();
         if (!$user || !$user->player) {
@@ -36,6 +40,9 @@ class SessionController extends Controller
         }
     }
 
+    /**
+     * Handle ping requests to check server status.
+     */
     public function ping(Request $request){
         return response()->json([
                 'status' => 'ok',
@@ -43,6 +50,9 @@ class SessionController extends Controller
             ]);
     }
 
+    /**
+     * Handle starting the player's turn.
+     */
     public function startTurn(Request $request)
     {
         $user = $request->user();
@@ -52,6 +62,30 @@ class SessionController extends Controller
 
         try {
             $result = $this->sessionService->startTurn($user->player->PlayerId);
+
+            if (isset($result['error'])) {
+                return response()->json($result, 400);
+            }
+
+            return response()->json($result, 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Handle rolling the dice for the player's turn.
+     */
+    public function roll(Request $request)
+    {
+        $user = $request->user();
+        if (!$user || !$user->player) {
+            return response()->json(['error' => 'Player profile not found'], 404);
+        }
+
+        try {
+            $result = $this->sessionService->rollDice($user->player->PlayerId);
 
             if (isset($result['error'])) {
                 return response()->json($result, 400);

@@ -54,7 +54,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('session')->group(function () {
         Route::get('/state', [SessionController::class, 'state']);
         Route::post('/ping', [SessionController::class, 'ping']);
-        Route::post('/turn/start', [SessionController::class, 'startTurn']);
+        Route::prefix('turn')->group(function () {
+            Route::post('/start', [SessionController::class, 'startTurn']);
+            Route::post('/roll', [SessionController::class, 'roll']);
+        });
     });
 
     Route::get('/scenarios', [ScenarioController::class, 'index']);

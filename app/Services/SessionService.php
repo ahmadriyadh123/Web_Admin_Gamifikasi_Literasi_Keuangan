@@ -117,4 +117,44 @@ class SessionService {
             'turn_number' => $session->current_turn
         ];
     }
+
+    /**
+     * Handle rolling the dice for the player's turn.
+     */
+    public function rollDice(string $playerId)
+    {
+        $participation = ParticipatesIn::where('playerId', $playerId)
+            ->whereHas('session', fn($q) => $q->where('status', 'active'))
+            ->first();
+
+        if (!$participation) {
+            return ['error' => 'Player is not in an active session'];
+        }
+
+        $session = $participation->session;
+
+        if ($session->current_player_id !== $playerId) {
+            return ['error' => 'It is not your turn'];
+        }
+
+        $gameState = json_decode($session->game_state, true) ?? [];
+        $currentPhase = $gameState['turn_phase'] ?? 'waiting';
+
+        if ($currentPhase !== 'waiting') {
+            return ['error' => "Cannot roll dice in '$currentPhase' phase. Please wait or check state."];
+        }
+
+        $diceValue = rand(1, 6);
+
+        $gameState['turn_phase'] = 'rolling';
+        $gameState['last_dice'] = $diceValue;
+        
+        $session->game_state = json_encode($gameState);
+        $session->save();
+
+        return [
+            'turn_phase' => 'rolling',
+            'dice_value' => $diceValue
+        ];
+    }
 }
