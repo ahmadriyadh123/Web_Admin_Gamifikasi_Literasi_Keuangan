@@ -1,0 +1,49 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Tymon\JWTAuth\Contracts\JWTSubject;
+
+class AuthUser extends Authenticatable implements JWTSubject
+{
+    use HasFactory, Notifiable;
+
+    protected $table = 'auth_users'; // Nama tabel di database
+
+    protected $fillable = [
+        'username',
+        'passwordHash', // Kita pakai passwordHash, bukan password
+        'role',
+        'is_active',
+        'ban_reason',
+        'google_id',
+        'avatar_url'
+    ];
+
+    protected $hidden = [
+        'passwordHash',
+    ];
+
+    // Override: Beritahu Laravel kolom password kita namanya 'passwordHash'
+    public function getAuthPassword()
+    {
+        return $this->passwordHash;
+    }
+
+    // Wajib untuk JWT
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    public function getJWTCustomClaims()
+    {
+        return [
+            'role' => $this->role,
+            'id' => $this->id
+        ];
+    }
+}

@@ -1,16 +1,20 @@
 <?php
-
 namespace App\Services;
 
+use App\Repositories\ScenarioRepository;
 use App\Models\ScenarioOption;
-use App\Models\Scenario;
 
 class ScenarioService
 {
+    protected $repo;
+
+    public function __construct(ScenarioRepository $repo)
+    {
+        $this->repo = $repo;
+    }
 
     public function processSubmission(array $data)
     {
-        // 1. Ambil Kunci Jawaban dari Database
         $option = ScenarioOption::where('scenarioId', $data['scenario_id'])
             ->where('optionId', $data['selected_option'])
             ->first();
@@ -19,28 +23,87 @@ class ScenarioService
             throw new \Exception("Opsi jawaban tidak ditemukan.");
         }
 
-        // 2. Hitung Score Change
-        $scoreChangeArray = $option->scoreChange; // JSON dari DB: {"pendapatan": -3, "overall": -3}
-
-        // Ambil kategori score yang terpengaruh (key pertama)
+        $scoreChangeArray = $option->scoreChange; 
         $affectedScore = array_key_first($scoreChangeArray);
         $scoreChange = $scoreChangeArray[$affectedScore] ?? 0;
 
-        // 4. Hitung nilai baru (mock - nanti ambil dari player profile saat auth sudah ada)
-        $newScoreValue = 12; // Mock value
+        $newScoreValue = 12; // Mock sementara
 
-        // 5. Response message berdasarkan benar/salah
-        $responseMessage = $option->is_correct
-            ? ($option->feedback ?? "Pilihan yang tepat!")
-            : ($option->feedback ?? "Hati-hati, keputusan ini berdampak negatif.");
+        $feedbackText = $option->response ?? "Pilihan tercatat.";
+        $responseMessage = $option->is_correct ? $feedbackText : $feedbackText;
 
-        // 6. Return response sesuai spesifikasi V3
         return [
-            'correct' => $option->is_correct,
+            'correct' => (bool) $option->is_correct,
             'score_change' => $scoreChange,
             'affected_score' => $affectedScore,
             'new_score_value' => $newScoreValue,
             'response' => $responseMessage
+        ];
+    }
+
+
+    public function getAdminList($request)
+    {
+        // Ambil Data Mentah dari Repository dengan Filter
+        $paginator = $this->repo->getPaginated($request->input('limit', 10), [
+            'search' => $request->input('search'),
+            'category' => $request->input('category'),
+            'difficulty' => $request->input('difficulty'),
+        ]);
+
+        // Transformasi Data agar rapi untuk API Response
+        $paginator->getCollection()->transform(function ($scenario) {
+            return [
+                'id' => $scenario->id,
+                'title' => $scenario->title,
+                'category' => $scenario->category,
+                'difficulty' => $scenario->difficulty,
+                'options_count' => $scenario->options->count(),
+                'created_at' => $scenario->created_at ? $scenario->created_at->format('Y-m-d H:i') : '-',
+            ];
+        });
+
+        return $paginator;
+    }
+
+    /**
+     * Mengambil detail lengkap skenario
+     */
+    public function getAdminDetail($id)
+    {
+        $scenario = $this->repo->findById($id);
+
+        if (!$scenario) return null;
+
+        return [
+            'id' => $scenario->id,
+            'meta' => [
+                'created_at' => $scenario->created_at,
+                'updated_at' => $scenario->updated_at,
+            ],
+            'content' => [
+                'title' => $scenario->title,
+                'category' => $scenario->category,
+                'question' => $scenario->question,
+                'difficulty' => $scenario->difficulty,
+                'learning_objective' => $scenario->learning_objective,
+            ],
+            'ai_config' => [
+                'tags' => $scenario->tags,
+                'weak_area_relevance' => $scenario->weak_area_relevance,
+                'cluster_relevance' => $scenario->cluster_relevance,
+                'historical_success_rate' => $scenario->historical_success_rate
+            ],
+            'options' => $scenario->options->map(function ($opt) {
+                return [
+                    'id' => $opt->id,
+                    'label' => $opt->optionId,
+                    'text' => $opt->text,
+                    'feedback' => $opt->response,
+                    'is_correct' => (bool) $opt->is_correct,
+                    'impact' => $opt->scoreChange
+                ];
+            })
         ];
     }
 }

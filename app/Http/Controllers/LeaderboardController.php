@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\ParticipatesIn; // <-- Impor Model Anda
+use App\Models\participatesin; // <-- Impor Model Anda
 use Illuminate\Support\Facades\Validator; // <-- Impor Validator
 
 class LeaderboardController extends Controller
@@ -36,7 +36,7 @@ class LeaderboardController extends Controller
         $sessionId = $latestSession->sessionId;
 
         // Ambil ranking dari session tersebut
-        $rankings = ParticipatesIn::with('player:PlayerId,name')
+        $rankings = participatesin::with('player:PlayerId,name')
             ->where('sessionId', $sessionId)
             ->orderBy('score', 'DESC')
             ->get();

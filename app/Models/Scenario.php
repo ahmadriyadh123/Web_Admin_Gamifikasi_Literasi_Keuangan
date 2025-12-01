@@ -1,40 +1,39 @@
 <?php
-
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Scenario extends Model
 {
-    use HasFactory;
-
-    // Tentukan nama tabelnya (Laravel mungkin mengira 'scenarios')
+    use SoftDeletes;
+    
     protected $table = 'scenarios';
-
-    // Beri tahu Eloquent bahwa PK BUKAN 'id' integer
     protected $primaryKey = 'id';
     public $incrementing = false;
     protected $keyType = 'string';
 
-    // Atur timestamp
-    public $timestamps = true;
-    const CREATED_AT = 'created_at';
-    const UPDATED_AT = null; // Tidak ada 'updated_at'
-
-    /**
-     * Otomatis cast kolom JSON (MySQL)
-     */
-    protected $casts = [
-        'tags' => 'array',
-        'weak_area_relevance' => 'array',
-        'cluster_relevance' => 'array',
+    // TAMBAHKAN KOLOM BARU DI SINI
+    protected $fillable = [
+        'id', 
+        'category', 
+        'title', 
+        'question', 
+        'tags', 
+        'difficulty', 
+        'learning_objective',
+        'weak_area_relevance', // <--- Baru
+        'cluster_relevance',   // <--- Baru
+        'historical_success_rate'
     ];
 
-    /**
-     * RELASI (Langkah 6 di diagram):
-     * Satu Skenario memiliki BANYAK Opsi Jawaban.
-     */
+    protected $casts = [
+        'tags' => 'array',
+        'weak_area_relevance' => 'array', // <--- Auto JSON encode/decode
+        'cluster_relevance' => 'array',   // <--- Auto JSON encode/decode
+        'historical_success_rate' => 'float'
+    ];
+
     public function options()
     {
         return $this->hasMany(ScenarioOption::class, 'scenarioId', 'id');

@@ -35,7 +35,7 @@ class Session extends Model
      */
     public function participants()
     {
-        return $this->hasMany(ParticipatesIn::class, 'sessionId', 'sessionId');
+        return $this->hasMany(participatesin::class, 'sessionId', 'sessionId');
     }
 
     /**
