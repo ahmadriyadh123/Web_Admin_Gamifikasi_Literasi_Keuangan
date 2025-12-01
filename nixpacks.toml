@@ -1,14 +1,17 @@
-# Gunakan providers agar Railway otomatis mengatur PHP & Node.js yang kompatibel
+# nixpacks.toml
+
+# Gunakan providers agar versi Node & PHP otomatis dipilih yang kompatibel
 providers = ["php", "node"]
 
 [variables]
+# Tentukan versi spesifik
 NODE_VERSION = "20"
 PHP_VERSION = "8.2"
-# Setting Nginx agar upload file besar/request panjang tidak time-out (mencegah sebagian 502)
+# Mencegah error 502/413 saat upload file besar
 NIXPACKS_NGINX_CLIENT_MAX_BODY_SIZE = "50M"
 
 [phases.build]
-# Perintah build lengkap: Install frontend -> Build frontend -> Install backend -> Cache Laravel
+# Urutan: Install dependencies -> Build Frontend -> Setup Laravel
 cmds = [
     "npm ci",
     "npm run build",
@@ -19,5 +22,4 @@ cmds = [
 ]
 
 [start]
-# Perintah untuk menjalankan server
 cmd = "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT"
