@@ -3,3 +3,6 @@ builder = "nixpacks"
 
 [variables]
 PHP_EXTENSIONS = "pdo_mysql mysqli"
+
+[start]
+cmd = "php artisan serve --host=0.0.0.0 --port=8000"
