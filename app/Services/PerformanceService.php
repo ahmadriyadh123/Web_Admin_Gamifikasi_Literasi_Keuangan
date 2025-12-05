@@ -20,6 +20,9 @@ class PerformanceService
         }
 
         $scores = $profile->lifetime_scores ?? [];
+        if (is_string($scores)) {
+            $scores = json_decode($scores, true) ?? [];
+        }
 
         $overall = $scores['overall'] ?? 0;
         if ($overall == 0 && !empty($scores)) {
@@ -32,13 +35,13 @@ class PerformanceService
         return [
             'scores' => [
                 'pendapatan' => $scores['pendapatan'] ?? 0,
-                'anggaran'   => $scores['anggaran'] ?? 0,
-                'tabungan'   => $scores['tabungan_dan_dana_darurat'] ?? 0,
-                'utang'      => $scores['utang'] ?? 0,
-                'investasi'  => $scores['investasi'] ?? 0,
-                'asuransi'   => $scores['asuransi_dan_proteksi'] ?? 0,
+                'anggaran' => $scores['anggaran'] ?? 0,
+                'tabungan' => $scores['tabungan_dan_dana_darurat'] ?? 0,
+                'utang' => $scores['utang'] ?? 0,
+                'investasi' => $scores['investasi'] ?? 0,
+                'asuransi' => $scores['asuransi_dan_proteksi'] ?? 0,
                 'tujuan_jangka_panjang' => $scores['tujuan_jangka_panjang'] ?? 0,
-                'overall'    => round($overall)
+                'overall' => round($overall)
             ],
             'last_updated' => $profile->last_updated ? $profile->last_updated->toIso8601String() : null
         ];
