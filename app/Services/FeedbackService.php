@@ -8,7 +8,7 @@ use App\Models\ParticipatesIn;
 class FeedbackService
 {
     /**
-     * Menyimpan respon pemain terhadap intervensi (misal: heed/ignore)
+     * Menyimpan respon pemain terhadap intervensi
      */
     public function storeInterventionFeedback(string $playerId, array $data)
     {
@@ -25,22 +25,15 @@ class FeedbackService
             'player_id' => $playerId,
             'session_id' => $sessionId,
             'turn_number' => $turnNumber,
-            'content_id' => $data['intervention_id'],
-            'content_type' => 'intervention_response',
-            'selected_option' => $data['player_response'],
+            'content_id' => $data['scenario_id'],
+            'content_type' => 'intervention_log',
+            'selected_option' => $data['intervention_id'],
+            'player_response' => $data['player_response'],
             'is_correct' => false,
             'score_change' => 0,
-            'decision_time_seconds' => 0,
             'created_at' => now()
         ]);
 
-        return [
-            'status' => 'success',
-            'message' => 'Feedback recorded',
-            'data' => [
-                'intervention_id' => $data['intervention_id'],
-                'response' => $data['player_response']
-            ]
-        ];
+        return ['ok' => true];
     }
 }
