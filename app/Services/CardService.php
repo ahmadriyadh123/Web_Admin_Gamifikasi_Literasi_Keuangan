@@ -101,7 +101,7 @@ class CardService
             ->whereHas('session', fn($q) => $q->where('status', 'active'))
             ->first();
 
-        if ($participation) {
+        if ($participation && $participation->sessionId !== 'unknown') {
             PlayerDecision::create([
                 'player_id' => $playerId,
                 'session_id' => $participation->sessionId,
