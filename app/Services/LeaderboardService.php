@@ -19,9 +19,13 @@ class LeaderboardService
 
         // 2. Map data ke format yang butuhkan & Hitung Overall Score
         $rankedPlayers = $profiles->map(function ($profile) {
-            $scores = $profile->lifetime_scores ?? [];
+            $scores = $profile->lifetime_scores;
+            // Defensive coding: Ensure scores is an array
             if (is_string($scores)) {
-                $scores = json_decode($scores, true) ?? [];
+                $decoded = json_decode($scores, true);
+                $scores = is_array($decoded) ? $decoded : [];
+            } elseif (!is_array($scores)) {
+                $scores = [];
             }
 
             // Hitung Overall Score
