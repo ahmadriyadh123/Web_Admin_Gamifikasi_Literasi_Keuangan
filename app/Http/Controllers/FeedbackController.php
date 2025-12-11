@@ -7,6 +7,9 @@ use App\Services\FeedbackService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
+// Force load to bypass potential autoloader cache issues
+require_once app_path('Services/FeedbackService.php');
+
 class FeedbackController extends Controller
 {
     protected $feedbackService;

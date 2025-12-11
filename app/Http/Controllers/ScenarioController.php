@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Services\ScenarioService;
 
+// Force load to bypass potential autoloader cache issues on Railway
+require_once app_path('Services/ScenarioService.php');
+
 class ScenarioController extends Controller
 {
     protected $scenarioService;
@@ -41,7 +44,7 @@ class ScenarioController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-    
+
     /**
      * Memproses jawaban skenario dari pemain,
      * memperbarui skor lifetime berdasarkan opsi yang dipilih,
