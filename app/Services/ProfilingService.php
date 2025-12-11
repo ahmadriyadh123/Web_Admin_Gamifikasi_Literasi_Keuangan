@@ -159,6 +159,21 @@ class ProfilingService
     public function runProfilingCluster(string $playerId, $directInput = null)
     {
         $input = $directInput ?? ProfilingInput::where('player_id', $playerId)->latest()->first();
+
+        // 1b. Mock Input for Dummy Player if missing
+        if (!$input && $playerId === 'player_dummy_profiling_infinite') {
+            $input = new \stdClass();
+            $input->feature = json_encode([
+                'pendapatan' => 30,
+                'anggaran' => 30,
+                'tabungan_dan_dana_darurat' => 20,
+                'utang' => 10,
+                'investasi' => 10,
+                'asuransi_dan_proteksi' => 20,
+                'tujuan_jangka_panjang' => 30
+            ]);
+        }
+
         if (!$input) {
             return ['error' => 'No profiling input found'];
         }
@@ -189,7 +204,7 @@ class ProfilingService
             'cluster' => $finalClass,
             'level' => $profileData['level'],
             'traits' => $profileData['traits'],
-            'weak_areas' => $profileData['weak_areas'],
+            'weak_areas' => $dynamicWeakAreas,
             'recommended_focus' => $profileData['recommended_focus'],
         ];
     }
