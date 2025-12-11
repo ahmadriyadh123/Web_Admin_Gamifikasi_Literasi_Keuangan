@@ -312,17 +312,20 @@ class CardService
         $sessionId = $participation ? $participation->sessionId : 'unknown';
         $turnNum = $participation ? ($participation->session->current_turn ?? 0) : 0;
 
-        PlayerDecision::create([
-            'player_id' => $playerId,
-            'session_id' => $sessionId,
-            'turn_number' => $turnNum,
-            'content_id' => $contentId,
-            'content_type' => 'quiz',
-            'selected_option' => $selection,
-            'is_correct' => $isCorrect,
-            'score_change' => $change,
-            'decision_time_seconds' => $time,
-            'created_at' => now()
-        ]);
+        // Validation: Don't log if session is unknown (prevents SQL error)
+        if ($sessionId !== 'unknown') {
+            PlayerDecision::create([
+                'player_id' => $playerId,
+                'session_id' => $sessionId,
+                'turn_number' => $turnNum,
+                'content_id' => $contentId,
+                'content_type' => 'quiz',
+                'selected_option' => $selection,
+                'is_correct' => $isCorrect,
+                'score_change' => $change,
+                'decision_time_seconds' => $time,
+                'created_at' => now()
+            ]);
+        }
     }
 }
