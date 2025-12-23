@@ -7,17 +7,20 @@ use App\Models\ParticipatesIn;
 use App\Models\BoardTile;
 use App\Models\Config;
 use App\Models\Player;
+use App\Models\PlayerProfile;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 
-class SessionService {
+class SessionService
+{
     /*
-    * Mengambil status sesi permainan yang sedang diikuti pemain:
-    * mengecek apakah pemain berada di sesi aktif atau masih menunggu,
-    * memuat state permainan (giliran, fase, skor, posisi), lalu
-    * mengembalikan ringkasan lengkap status sesi dalam bentuk array.
-    */
-    public function getSessionState(string $playerId) {
+     * Mengambil status sesi permainan yang sedang diikuti pemain:
+     * mengecek apakah pemain berada di sesi aktif atau masih menunggu,
+     * memuat state permainan (giliran, fase, skor, posisi), lalu
+     * mengembalikan ringkasan lengkap status sesi dalam bentuk array.
+     */
+    public function getSessionState(string $playerId)
+    {
         $participation = ParticipatesIn::where('playerId', $playerId)
             ->whereHas('session', function ($query) {
                 $query->whereIn('status', ['active', 'waiting']);
@@ -25,12 +28,12 @@ class SessionService {
             ->with('session.participants')
             ->first();
 
-        if(!$participation) {
+        if (!$participation) {
             $lobby = ParticipatesIn::where('playerId', $playerId)
-            ->whereHas('session', fn($q) => $q->where('status', 'waiting'))
-            ->first();
-            
-            if($lobby) {
+                ->whereHas('session', fn($q) => $q->where('status', 'waiting'))
+                ->first();
+
+            if ($lobby) {
                 return ['error' => 'Game has not started yet. Please use /matchmaking/status'];
             }
 
@@ -56,15 +59,23 @@ class SessionService {
                 'is_ready' => (bool) $p->is_ready
             ];
 
-            $pScore = $gameState['scores'][$p->playerId] ?? [
-                "pendapatan" => 0,
-                "anggaran" => 0,
-                "tabungan" => 0,
-                "utang" => 0,
-                "investasi" => 0,
-                "asuransi" => 0,
-                "tujuan_jangka_panjang" => 0,
-                "overall" => $p->score
+            $latestProfile = PlayerProfile::find($p->playerId);
+            $latestScores = $latestProfile ? ($latestProfile->lifetime_scores ?? []) : [];
+
+            // Decode jika masih string
+            if (is_string($latestScores)) {
+                $latestScores = json_decode($latestScores, true) ?? [];
+            }
+
+            $pScore = [
+                "pendapatan" => $latestScores['pendapatan'] ?? 0,
+                "anggaran" => $latestScores['anggaran'] ?? 0,
+                "tabungan" => $latestScores['tabungan_dan_dana_darurat'] ?? 0,
+                "utang" => $latestScores['utang'] ?? 0,
+                "investasi" => $latestScores['investasi'] ?? 0,
+                "asuransi" => $latestScores['asuransi_dan_proteksi'] ?? 0,
+                "tujuan_jangka_panjang" => $latestScores['tujuan_jangka_panjang'] ?? 0,
+                "overall" => $latestProfile->level ?? 0
             ];
             $scoresData[] = $pScore;
 
@@ -119,7 +130,7 @@ class SessionService {
 
         $gameState = json_decode($session->game_state, true) ?? [];
         $gameState['turn_phase'] = 'waiting';
-        
+
         $session->game_state = json_encode($gameState);
         $session->save();
 
@@ -161,7 +172,7 @@ class SessionService {
 
         $gameState['turn_phase'] = 'rolling';
         $gameState['last_dice'] = $diceValue;
-        
+
         $session->game_state = json_encode($gameState);
         $session->save();
 
@@ -208,16 +219,17 @@ class SessionService {
             }
 
             $currentPosition = $participation->position;
-            
+
             $totalTiles = BoardTile::count();
-            if ($totalTiles == 0) $totalTiles = 20;
+            if ($totalTiles == 0)
+                $totalTiles = 20;
 
             $newPosition = ($currentPosition + $diceValue) % $totalTiles;
 
             if ($newPosition < $currentPosition) {
                 // Logika "Pass Go" (Dapat uang) bisa ditaruh di sini
                 // $participation->score += 200;
-                
+
             }
 
             $gameState['prev_position'] = $currentPosition;
@@ -258,7 +270,7 @@ class SessionService {
         $currentPlayerId = $session->current_player_id;
         $currentPlayerName = 'Unknown';
         $currentParticipant = $session->participants->firstWhere('playerId', $currentPlayerId);
-        
+
         if ($currentParticipant) {
             $currentPlayerName = $currentParticipant->player->name;
             $currentPos = $currentParticipant->position;
@@ -267,7 +279,7 @@ class SessionService {
         }
 
         $tile = BoardTile::where('position_index', $currentPos)->first();
-        
+
         $eventType = 'none';
         $eventId = null;
 
@@ -322,7 +334,7 @@ class SessionService {
         }
 
         $participants = $session->participants->sortBy('player_order')->values();
-        
+
         $currentIndex = $participants->search(function ($p) use ($playerId) {
             return $p->playerId === $playerId;
         });
@@ -340,7 +352,7 @@ class SessionService {
         $gameState = json_decode($session->game_state, true) ?? [];
         $gameState['turn_phase'] = 'waiting';
         $gameState['last_dice'] = 0;
-        
+
         $session->game_state = json_encode($gameState);
         $session->save();
 

@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\DB;
 use App\Models\ParticipatesIn;
 use App\Models\BoardTile;
 use App\Models\Scenario;
+use App\Models\Card;
+use App\Models\QuizCard;
 
 class BoardService
 {

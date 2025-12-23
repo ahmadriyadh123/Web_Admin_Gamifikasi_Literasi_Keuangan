@@ -109,6 +109,19 @@ class ScenarioService
                 ->with('session')
                 ->first();
 
+            if ($participation && $participation->session) {
+                $session = $participation->session;
+                $gameState = json_decode($session->game_state, true) ?? [];
+
+                // Ubah phase agar client tahu event sudah selesai
+                $gameState['turn_phase'] = 'event_completed';
+                // Hapus active_event agar bersih
+                unset($gameState['active_event']);
+
+                $session->game_state = json_encode($gameState);
+                $session->save();
+            }
+
             $sessionId = $participation ? $participation->sessionId : null;
             $turnNumber = $participation ? ($participation->session->current_turn ?? 0) : 0;
 

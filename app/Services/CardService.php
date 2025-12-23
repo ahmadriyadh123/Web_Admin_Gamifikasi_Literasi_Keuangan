@@ -75,7 +75,26 @@ class CardService
             // 6. Simpan Perubahan ke Database
             $currentScores[$targetScoreKey] = $newValue;
             $profile->lifetime_scores = $currentScores;
+            $profile->lifetime_scores = $currentScores;
             $profile->save();
+
+            // UPDATE SESSION STATE
+            $participation = ParticipatesIn::where('playerId', $playerId)
+                ->whereHas('session', fn($q) => $q->where('status', 'active'))
+                ->with('session')
+                ->first();
+
+            if ($participation && $participation->session) {
+                $session = $participation->session;
+                $gameState = json_decode($session->game_state, true) ?? [];
+
+                // Ubah phase agar client tahu event sudah selesai
+                $gameState['turn_phase'] = 'event_completed';
+                unset($gameState['active_event']);
+
+                $session->game_state = json_encode($gameState);
+                $session->save();
+            }
 
             // (Opsional) Catat ke tabel player_decisions sebagai history
             $this->logCardHistory($playerId, $cardId, $change);
@@ -175,7 +194,25 @@ class CardService
             // 6. Simpan Perubahan
             $currentScores[$targetScoreKey] = $newValue;
             $profile->lifetime_scores = $currentScores;
+            $profile->lifetime_scores = $currentScores;
             $profile->save();
+
+            // UPDATE SESSION STATE
+            $participation = ParticipatesIn::where('playerId', $playerId)
+                ->whereHas('session', fn($q) => $q->where('status', 'active'))
+                ->with('session')
+                ->first();
+
+            if ($participation && $participation->session) {
+                $session = $participation->session;
+                $gameState = json_decode($session->game_state, true) ?? [];
+
+                $gameState['turn_phase'] = 'event_completed';
+                unset($gameState['active_event']);
+
+                $session->game_state = json_encode($gameState);
+                $session->save();
+            }
 
             // Catat History
             $this->logCardHistory($playerId, $cardId, $change, 'risk_card');
@@ -283,7 +320,25 @@ class CardService
 
             $currentScores[$categoryLabel] = $newVal;
             $profile->lifetime_scores = $currentScores;
+            $profile->lifetime_scores = $currentScores;
             $profile->save();
+
+            // UPDATE SESSION STATE
+            $participation = ParticipatesIn::where('playerId', $playerId)
+                ->whereHas('session', fn($q) => $q->where('status', 'active'))
+                ->with('session')
+                ->first();
+
+            if ($participation && $participation->session) {
+                $session = $participation->session;
+                $gameState = json_decode($session->game_state, true) ?? [];
+
+                $gameState['turn_phase'] = 'event_completed';
+                unset($gameState['active_event']);
+
+                $session->game_state = json_encode($gameState);
+                $session->save();
+            }
 
             // 6. Catat History Keputusan
             $this->logQuizDecision($playerId, $quizId, $selectedOption, $isCorrect, $scoreChange, $data['decision_time_seconds'] ?? 0);
