@@ -34,7 +34,7 @@ class MatchmakingService
             $maxPlayers = $config ? $config->maxPlayers : 4;
 
             $availableSession = GameSession::where('status', 'waiting')
-                ->whereRaw('(SELECT COUNT(*) FROM participatesin WHERE sessionId = game_sessions.sessionId) < ?', [$maxPlayers])
+                ->has('participants', '<', $maxPlayers)
                 ->lockForUpdate()
                 ->first();
 
