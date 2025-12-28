@@ -32,6 +32,15 @@ class ProfilingController extends Controller
     }
 
     /**
+     * Mendapatkan daftar pertanyaan profiling beserta opsi-opsinya.
+     */
+     public function questions()
+    {
+        $result = $this->profilingService->getActiveProfilingQuestions();
+        return response()->json($result);
+    }
+
+    /**
      * Menyimpan jawaban onboarding dari player.
      */
     public function submit(ProfilingSubmitRequest $request)

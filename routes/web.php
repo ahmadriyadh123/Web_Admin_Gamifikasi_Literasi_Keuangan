@@ -1,9 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Models\ProfilingQuestion;
+use App\Repositories\ProfilingRepository;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\LeaderboardController;
+use App\Services\ProfilingService;
+use App\Services\AI\FuzzyService;
 
 Route::get('/', function () {
     return view('welcome');
@@ -104,3 +108,45 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/leaderboard', function () {
     return view('admin.players.leaderboard');
 })->name('leaderboard');
+
+
+Route::get('/debug/profiling/questions', function () {
+    $questions = ProfilingQuestion::where('is_active', 1)
+        ->with(['options', 'aspects'])
+        ->orderBy('id')
+        ->get();
+
+    return response()->json($questions);
+});
+
+Route::get('/debug/fuzzy-all', function () {
+
+    $profiling = app(ProfilingService::class);
+    $fuzzy = app(FuzzyService::class);
+
+    // === 1. Hardcoded jawaban onboarding ===
+    $answers = [
+        'q1' => 'D',   // skor 30
+        'q2' => 'C',   // skor 18
+        'q3' => 'B',   // skor 6
+    ];
+
+    // === 2. Normalisasi dari ProfilingService ===
+    $normalized = $profiling->calculateFeaturesFromAnswers($answers);
+
+    // === 3. Fuzzification: degree membership setiap kategori ===
+    $membershipDetails = [];
+    foreach ($normalized as $key => $value) {
+        $membershipDetails[$key] = app(FuzzyService::class)->fuzzifyDebug($value);
+    }
+
+    // === 4. Fuzzy final label ===
+    $linguistic = $fuzzy->categorize($normalized);
+
+    return response()->json([
+        'answers_used' => $answers,
+        'normalized_scores' => $normalized,
+        'membership_degrees' => $membershipDetails,
+        'fuzzy_output_labels' => $linguistic,
+    ]);
+});
