@@ -362,4 +362,43 @@ class SessionService
             'turn_number' => $session->current_turn
         ];
     }
+
+    /**
+     * Finalize and leave session
+     * Updates player profile with final ANN evaluation
+     */
+    public function leaveSession(string $playerId)
+    {
+        return DB::transaction(function () use ($playerId) {
+            $participation = ParticipatesIn::where('playerId', $playerId)
+                ->whereHas('session', fn($q) => $q->whereIn('status', ['active', 'waiting']))
+                ->first();
+
+            if (!$participation) {
+                return ['error' => 'Player is not in any session'];
+            }
+
+            $sessionId = $participation->sessionId;
+            $session = $participation->session;
+
+            // Mark player as disconnected
+            $participation->connection_status = 'disconnected';
+            $participation->save();
+
+            // Check if all players left
+            $remainingPlayers = ParticipatesIn::where('sessionId', $sessionId)
+                ->where('connection_status', 'connected')
+                ->count();
+
+            if ($remainingPlayers === 0) {
+                $session->status = 'completed';
+                $session->save();
+            }
+
+            return [
+                'message' => 'Successfully left session',
+                'session_id' => $sessionId
+            ];
+        });
+    }
 }

@@ -15,10 +15,7 @@ use App\Http\Controllers\InterventionController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\LeaderboardController;
-use App\Repositories\ProfilingRepository;
-use App\Services\ProfilingService;
-use App\Services\AI\FuzzyService;
-use App\Services\AI\FuzzyRule;
+use App\Http\Controllers\PredictionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,6 +58,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/end', [SessionController::class, 'endTurn']);
         });
         Route::post('/player/move', [SessionController::class, 'move']);
+        Route::post('/leave', [SessionController::class, 'leave']);
+        
+        // Prediction & Analysis Endpoints
+        Route::get('/predict/current', [PredictionController::class, 'getCurrentPrediction']);
+        Route::get('/analysis/pause', [PredictionController::class, 'analyzePause']);
+        Route::post('/finish', [PredictionController::class, 'finishSession']);
     });
 
     Route::get('/tile/{id}', [BoardController::class, 'getTile']);
