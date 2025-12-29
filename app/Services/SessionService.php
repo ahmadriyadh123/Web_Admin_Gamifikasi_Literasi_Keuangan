@@ -70,10 +70,10 @@ class SessionService
             $pScore = [
                 "pendapatan" => $latestScores['pendapatan'] ?? 0,
                 "anggaran" => $latestScores['anggaran'] ?? 0,
-                "tabungan" => $latestScores['tabungan_dan_dana_darurat'] ?? 0,
+                "tabungan_dan_dana_darurat" => $latestScores['tabungan_dan_dana_darurat'] ?? 0,
                 "utang" => $latestScores['utang'] ?? 0,
                 "investasi" => $latestScores['investasi'] ?? 0,
-                "asuransi" => $latestScores['asuransi_dan_proteksi'] ?? 0,
+                "asuransi_dan_proteksi" => $latestScores['asuransi_dan_proteksi'] ?? 0,
                 "tujuan_jangka_panjang" => $latestScores['tujuan_jangka_panjang'] ?? 0,
                 "overall" => $latestProfile->level ?? 0
             ];

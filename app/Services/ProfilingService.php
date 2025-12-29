@@ -7,6 +7,7 @@ use App\Services\AI\ANNService;
 use App\Models\PlayerProfile;
 use App\Models\ProfilingInput;
 use App\Repositories\ProfilingRepository;
+use Illuminate\Support\Facades\Log;
 
 class ProfilingService
 {
@@ -194,7 +195,7 @@ class ProfilingService
             try {
                 $profilingResult = $this->runProfilingCluster($input['player_id'], $profilingInput);
             } catch (\Exception $e) {
-                \Log::error("Profiling calculation failed for {$input['player_id']}: " . $e->getMessage());
+                Log::error("Profiling calculation failed for {$input['player_id']}: " . $e->getMessage());
                 return ['ok' => false, 'error' => $e->getMessage()];
             }
         }

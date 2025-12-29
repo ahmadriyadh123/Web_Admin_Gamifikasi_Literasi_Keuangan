@@ -94,7 +94,7 @@ class PredictionService
             }
 
             // Convert scores to linguistic labels using Fuzzy Logic
-            $linguisticLabels = $this->fuzzy->categorize($features);
+            $linguisticLabels = $this->fuzzy->categorize($playerId, $features);
 
             // Predict new cluster using ANN
             $predictedCluster = $this->ann->predict($linguisticLabels);
