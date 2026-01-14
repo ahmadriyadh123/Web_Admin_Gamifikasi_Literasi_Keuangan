@@ -12,20 +12,6 @@ use App\Models\QuizCard;
 class BoardService
 {
     /**
-     * Mapping kategori Tile (umum) ke kategori Scenario (spesifik)
-     * Digunakan untuk random selection scenario berdasarkan kategori tile
-     */
-    private const CATEGORY_MAPPING = [
-        'pendapatan' => ['Uang Bulanan', 'Pendapatan', 'Beasiswa'],
-        'anggaran' => ['Makan', 'Transport', 'Nongkrong'],
-        'tabungan_dan_dana_darurat' => ['Tabungan & Dana Darurat'],
-        'utang' => ['Pinjaman Teman', 'Pinjol', 'Utang'],
-        'investasi' => ['Reksadana', 'Saham', 'Cryptoocurrency'],
-        'asuransi' => ['Asuransi Kesehatan', 'Asuransi Kendaraan', 'Asuransi Barang/Harta'],
-        'tujuan_jangka_panjang' => ['Pendidikan', 'Pengalaman', 'Aset Produktif']
-    ];
-
-    /**
      * GET /tile/{tile_id} (index)
      * Mengambil data tile dan memicu event.
      */
@@ -124,11 +110,10 @@ class BoardService
         // 2. Jika dinamis, pilih acak dari tabel terkait
         switch ($tile->type) {
             case 'scenario':
-                // Ambil scenario acak dengan mapping kategori
+                // Ambil scenario acak berdasarkan nama tile (exact match dengan kategori scenario)
                 $query = Scenario::query();
-                if ($tile->category && isset(self::CATEGORY_MAPPING[$tile->category])) {
-                    // Gunakan mapping untuk mencari scenario dengan sub-kategori yang sesuai
-                    $query->whereIn('category', self::CATEGORY_MAPPING[$tile->category]);
+                if ($tile->name) {
+                    $query->where('category', $tile->name);
                 }
                 return $query->inRandomOrder()->value('id') ?? 'sc_default';
 
