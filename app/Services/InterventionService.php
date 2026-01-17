@@ -2,74 +2,116 @@
 
 namespace App\Services;
 
-use App\Models\PlayerProfile;
-use App\Models\PlayerDecision;
 use App\Models\InterventionTemplate;
+use App\Repositories\InterventionRepository;
 use Illuminate\Support\Str;
 
 class InterventionService
 {
+    protected $repository;
+
+    public function __construct(InterventionRepository $repository)
+    {
+        $this->repository = $repository;
+    }
+
     /**
      * Cek apakah intervensi perlu ditrigger berdasarkan performa player
+     *
+     * @return array|null
      */
-    public function checkInterventionTrigger(string $playerId)
+    public function checkInterventionTrigger(string $playerId): ?array
     {
-        $recentDecisions = PlayerDecision::where('player_id', $playerId)
-            ->orderBy('created_at', 'desc')
-            ->take(3)
-            ->get();
+        // 1. Ambil data keputusan (limit 15 untuk analisis streak mendalam)
+        $decisions = $this->repository->getRecentDecisions($playerId, 15);
 
-        $consecutiveErrors = 0;
-        foreach ($recentDecisions as $decision) {
-            if (!$decision->is_correct) {
-                $consecutiveErrors++;
-            } else {
+        // 2. Analisis kesalahan via Repository
+        $analysis = $this->repository->analyzeStreaks($decisions);
+
+        $consecutiveErrors = $analysis['global_errors'];
+        $categoryStreaks = $analysis['category_streaks'];
+
+        if ($consecutiveErrors < 2 && empty($categoryStreaks)) {
+            return null;
+        }
+
+        // 3. Tentukan Level Intervensi
+        $triggerLevel = 0;
+        $targetCategory = null;
+
+        // Prioritas 1: Level 3 (Blocking) - 4x salah di kategori yang sama
+        foreach ($categoryStreaks as $cat => $streak) {
+            if ($streak >= 4) {
+                $triggerLevel = 3;
+                $targetCategory = $cat;
                 break;
             }
         }
 
-        $triggerLevel = 0;
-        if ($consecutiveErrors >= 3) {
-            $triggerLevel = 2;
-        } elseif ($consecutiveErrors == 2) {
-            $triggerLevel = 1;
+        // Prioritas 2: Level 2 (Warning) - 3x salah di kategori yang sama (jika belum level 3)
+        if ($triggerLevel === 0) {
+            foreach ($categoryStreaks as $cat => $streak) {
+                if ($streak >= 3) {
+                    $triggerLevel = 2;
+                    $targetCategory = $cat;
+                    break;
+                }
+            }
         }
 
-        if ($triggerLevel == 0) {
+        // Prioritas 3: Level 1 (Reminder) - 2x salah global + Probabilitas
+        if ($triggerLevel === 0 && $consecutiveErrors >= 2) {
+            // Probabilitas 60%
+            if (rand(1, 100) <= 60) {
+                $triggerLevel = 1;
+            }
+        }
+
+        if ($triggerLevel === 0) {
             return null;
         }
 
-        $template = InterventionTemplate::where('level', $triggerLevel)->first();
+        // 4. Ambil Template
+        $query = InterventionTemplate::where('level', $triggerLevel);
+
+        if ($targetCategory) {
+            $query->where('category', $targetCategory);
+        } else {
+            $query->whereNull('category'); // General template
+        }
+
+        $template = $query->inRandomOrder()->first();
+
+        // Fallback ke general jika spesifik tidak ada
+        if (!$template && $targetCategory) {
+            $template = InterventionTemplate::where('level', $triggerLevel)
+                ->whereNull('category')
+                ->inRandomOrder()
+                ->first();
+        }
 
         if (!$template) {
-            return [
-                'intervention_id' => 'intv_' . Str::random(6),
-                'intervention_level' => $triggerLevel,
-                'title' => 'Peringatan Risiko',
-                'message' => "⚠️ Kamu sudah $consecutiveErrors kali salah berturut-turut. Yuk pelan-pelan!",
-                'options' => [
-                    ['id' => 'heed', 'text' => 'Lihat Tips'],
-                    ['id' => 'ignore', 'text' => 'Lanjut Saja']
-                ]
-            ];
+            return null;
         }
 
-        $dbOptions = $template->actions_template ?? [];
+        // 5. Format Response
+        $message = $template->message_template;
+        $title = $template->title_template;
 
-        // Force IDs to match frontend expectations
-        if (isset($dbOptions[0])) {
-            $dbOptions[0]['id'] = 'heed';
-        }
-        if (isset($dbOptions[1])) {
-            $dbOptions[1]['id'] = 'ignore';
+        // Replace placeholders if any
+        if ($targetCategory) {
+            $catName = ucwords(str_replace(['_'], [' '], $targetCategory));
+            $message = str_replace('{category}', $catName, $message);
         }
 
         return [
-            'intervention_id' => 'intv_' . Str::random(6),
+            'intervention_id' => 'intv_' . Str::random(8),
             'intervention_level' => $template->level,
-            'title' => $template->title_template,
-            'message' => $template->message_template,
-            'options' => $dbOptions
+            'title' => $title,
+            'message' => $message,
+            'is_mandatory' => (bool) $template->is_mandatory,
+            'options' => $template->actions_template,
+            'heed_message' => $template->heed_message
         ];
     }
 }

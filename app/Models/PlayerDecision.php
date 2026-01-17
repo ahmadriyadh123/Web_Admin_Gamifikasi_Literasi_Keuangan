@@ -21,6 +21,8 @@ class PlayerDecision extends Model
         'selected_option',
         'is_correct',
         'score_change',
+        'intervention_id',
+        'player_response',
         'decision_time_seconds',
         'intervention_triggered',
         'intervention_level',
