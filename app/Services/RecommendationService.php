@@ -17,9 +17,9 @@ class RecommendationService
     private const CATEGORY_MAPPING = [
         'pendapatan' => ['Uang Bulanan', 'Pendapatan', 'Beasiswa'],
         'anggaran' => ['Makan', 'Transport', 'Nongkrong'],
-        'tabungan_dan_dana_darurat' => ['Tabungan & Dana Darurat'],
+        'tabungan_dan_dana_darurat' => ['Tabungan', 'Dana Darurat', 'Deposito'],
         'utang' => ['Pinjaman Teman', 'Pinjol', 'Utang'],
-        'investasi' => ['Reksadana', 'Saham', 'Cryptoocurrency'],
+        'investasi' => ['Reksadana', 'Saham', 'Cryptocurrency'],
         'asuransi_dan_proteksi' => ['Asuransi Kesehatan', 'Asuransi Kendaraan', 'Asuransi Barang/Harta'],
         'tujuan_jangka_panjang' => ['Pendidikan', 'Pengalaman', 'Aset Produktif']
     ];
