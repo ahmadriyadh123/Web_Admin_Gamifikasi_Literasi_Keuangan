@@ -213,6 +213,25 @@ class SessionService
             $gameState = json_decode($session->game_state, true) ?? [];
             $currentPhase = $gameState['turn_phase'] ?? 'waiting';
 
+            // Jika phase adalah resolving_event (dari card movement), gunakan data dari current_turn_action
+            if ($currentPhase === 'resolving_event' && isset($gameState['current_turn_action'])) {
+                $turnAction = $gameState['current_turn_action'];
+                
+                // Phase transisi: client sudah tampilkan kartu, sekarang kembalikan ke rolling untuk melanjutkan
+                $gameState['turn_phase'] = 'rolling';
+                $gameState['last_dice'] = $turnAction['dice_value'] ?? 0; // null karena dari kartu
+                
+                $session->game_state = json_encode($gameState);
+                $session->save();
+                
+                return [
+                    'turn_phase' => 'rolling',
+                    'from_tile' => $turnAction['from_tile'],
+                    'to_tile' => $turnAction['to_tile'],
+                    'message' => 'Card movement applied. Position updated.'
+                ];
+            }
+
             if ($currentPhase !== 'rolling') {
                 return ['error' => "Cannot move in '$currentPhase' phase. You need to roll dice first."];
             }

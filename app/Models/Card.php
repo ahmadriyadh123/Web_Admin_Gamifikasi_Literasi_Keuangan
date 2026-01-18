@@ -17,7 +17,7 @@ class Card extends Model
 
     protected $fillable = [
         'id', 'type', 'title', 'narration', 'scoreChange', 'action', 
-        'categories', 'tags', 'difficulty', 'expected_benefit', 
+        'target_tile', 'categories', 'tags', 'difficulty', 'expected_benefit', 
         'learning_objective'
     ];
 
