@@ -63,6 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/end', [SessionController::class, 'endTurn']);
         });
         Route::post('/player/move', [SessionController::class, 'move']);
+        Route::post('/player/break', [SessionController::class, 'break']);
         Route::post('/leave', [SessionController::class, 'leave']);
 
         // Prediction & Analysis Endpoints

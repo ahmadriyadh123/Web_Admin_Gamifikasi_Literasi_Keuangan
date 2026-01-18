@@ -107,7 +107,7 @@ class ProfilingService
         ];
     }
 
-     /**
+    /**
      * Mengambil daftar pertanyaan profiling yang aktif
      */
     public function getActiveProfilingQuestions(): array
@@ -137,7 +137,7 @@ class ProfilingService
     public function saveOnboardingAnswers(array $input)
     {
         $playerId = $input['player_id'];
-        $answers  = $input['answers'];
+        $answers = $input['answers'];
 
         PlayerProfile::updateOrCreate(
             ['PlayerId' => $input['player_id']],
@@ -150,7 +150,7 @@ class ProfilingService
         // Menyimpan jawaban satu per satu  
         foreach ($answers as $answer) {
             $questionCode = $answer['question_code'];
-            $optionToken  = $answer['option_token'];
+            $optionToken = $answer['option_token'];
 
             $option = $this->profilingRepository
                 ->getOptionByToken($questionCode, $optionToken);
@@ -164,7 +164,7 @@ class ProfilingService
             $this->profilingRepository->saveAnswer(
                 $playerId,
                 $option->question_id,
-                $option->option_code 
+                $option->option_code
             );
         }
 
@@ -210,11 +210,11 @@ class ProfilingService
     {
         // Mengambil semua pertanyaan aktif
         $questions = $this->profilingRepository->getProfilingQuestions();
-        
+
         // Mengambil semua jawaban pemain
         $answers = $this->profilingRepository->getAnswersByPlayerId($playerId)
             ->keyBy('question_id');
-        
+
         $scores = [];
 
         foreach ($questions as $question) {
@@ -239,7 +239,7 @@ class ProfilingService
             }
 
             // Normalisasi (0-100)
-            $normalizedScore = ($optionScore / $question->max_score) * 100;
+            $normalizedScore = round(($optionScore / $question->max_score) * 100);
 
             foreach ($question->aspects as $aspect) {
                 if ($aspect->aspect_key === 'utang') {
@@ -279,11 +279,11 @@ class ProfilingService
         }
 
         $features = json_decode($input->feature, true);
-        
+
         #Profiling dengan Fuzzy Logic
         $fuzzyOutput = $this->fuzzy->categorize($playerId, $features);
         $linguisticLabels = $fuzzyOutput['fuzzy_categories'];
-        
+
         #Profiling dengan ANN dengan PHP-ML
         $finalClass = $this->ann->predict($linguisticLabels);
         $profileData = self::CLUSTER_PROFILES[$finalClass] ?? self::CLUSTER_PROFILES['default'];
@@ -312,6 +312,7 @@ class ProfilingService
             'traits' => $profileData['traits'],
             'weak_areas' => $dynamicWeakAreas,
             'recommended_focus' => $profileData['recommended_focus'],
+            'features' => $features,
         ];
     }
 }

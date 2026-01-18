@@ -31,10 +31,9 @@ class RecommendationService
 
     /*
      * Memberikan rekomendasi skenario pertanyaan berikutnya untuk pemain:
-     * mengambil profil dan skor lifetime, menentukan kategori terlemah,
-     * mencari daftar skenario yang relevan, menghitung kemiripan (cosine similarity)
-     * antara kemampuan pemain dan tingkat kesulitan skenario, lalu memilih
-     * pertanyaan terbaik yang dapat meningkatkan skor pemain.
+     * mengambil profil dan skor lifetime, menentukan 3 kategori terlemah 
+     * dengan Gap Vektor, membandingkan kemiripan (cosine similarity) antara 
+     * kemampuan pemain dan tingkat kesulitan skenario, Memilih pertanyaan terbaik.
      */
     public function recommendNextQuestion(string $playerId)
     {
@@ -44,68 +43,122 @@ class RecommendationService
         }
 
         $userScores = $profile->lifetime_scores;
-
-        if (!is_array($userScores)) {
-            return ['error' => 'Invalid score format'];
+        // Validasi
+        if (empty($userScores)) {
+            // Handle user baru
+            return ['error' => 'Belum ada data skor.'];
+        }
+        if (is_string($userScores)) {
+            $userScores = json_decode($userScores, true) ?? [];
         }
 
-        $weakestCategory = $this->findWeakestCategory($userScores);
-        $userWeakestScore = $userScores[$weakestCategory] ?? 0;
-        
-        // Konversi user score (0-100) ke difficulty level (1-3)
-        $userLevel = $this->convertScoreToLevel($userWeakestScore);
+        // Mempersiapkan Gap Vector
+        $userGapVector = $this->prepareGapVector($userScores);
 
-        // Gunakan mapping untuk query scenario dengan sub-kategori yang sesuai
+        // Mengambil tiga kategori terlemah
+        arsort($userGapVector);
+        $candidateCategories = array_keys(array_slice($userGapVector, 0, 3));
+
+        if (empty($candidateCategories)) {
+            $candidateCategories = array_keys($userScores); // Fallback
+        }
+
+        // Mengambil Pertanyaan dari kategori yang dipilih
+        // Query menggunakan whereIn category berdasarkan mapping
+        $targetCategories = [];
+        foreach ($candidateCategories as $cat) {
+            if (isset(self::CATEGORY_MAPPING[$cat])) {
+                // Gabungkan sub-kategori secara langsung
+                $targetCategories = array_merge($targetCategories, self::CATEGORY_MAPPING[$cat]);
+            } else {
+                // Fallback gunakan nilai asli
+                $targetCategories[] = $cat;
+            }
+        }
+
+        // Hapus duplikat untuk memastikan data unik
+        $targetCategories = array_unique($targetCategories);
+
         $query = DB::table('scenarios');
-        
-        if (isset(self::CATEGORY_MAPPING[$weakestCategory])) {
-            $query->whereIn('category', self::CATEGORY_MAPPING[$weakestCategory]);
-        } else {
-            // Fallback jika kategori tidak ada di mapping
-            $query->where('category', $weakestCategory);
-        }
-        
+        $query->whereIn('category', $targetCategories);
+
         $questions = $query->get();
 
         if ($questions->isEmpty()) {
-            return ['error' => 'No questions found for category: ' . $weakestCategory];
+            return ['error' => 'No questions found for candidate categories.'];
         }
 
-        $bestQuestion = null;
-        $maxSimilarity = -1;
-        $userVector = $this->prepareVector($userScores);
+        $candidates = [];
+        $maxSimilarity = -2;
 
         foreach ($questions as $question) {
-            // Bandingkan difficulty skenario dengan level pemain (keduanya skala 1-3)
-            if ($question->difficulty <= $userLevel) {
+            // Mapping Difficulty
+            $realDifficulty = $this->convertDifficulty($question->difficulty);
+
+            // Menentukan Kategori Utama dari field 'category'
+            $mainCategoryKey = null;
+            $qCat = $question->category;
+
+            foreach (self::CATEGORY_MAPPING as $key => $subCats) {
+                if (in_array($qCat, $subCats)) {
+                    $mainCategoryKey = $key;
+                    break;
+                }
+            }
+
+            // Gunakan kategori huruf kecil jika pemetaan gagal
+            if (!$mainCategoryKey) {
+                $mainCategoryKey = strtolower($qCat);
+            }
+
+            // Ambil Skor Pengguna berdasarkan Kunci Kategori Utama
+            $userScoreInCat = $userScores[$mainCategoryKey] ?? 0;
+
+            if ($realDifficulty <= $userScoreInCat) {
                 continue;
             }
 
-            $questionVector = $this->createQuestionVector($question->category, $question->difficulty, array_keys($userScores));
-            $similarity = $this->cosine->calculate($userVector, $questionVector);
+            // Menghitung Cosine Similarity
+            // Gunakan $mainCategoryKey untuk konsistensi vector
+            $questionVector = $this->createQuestionVector($mainCategoryKey, $realDifficulty, array_keys($userScores));
+            $similarity = $this->cosine->calculate($userGapVector, $questionVector);
 
-            if ($similarity > $maxSimilarity) {
-                $maxSimilarity = $similarity;
-                $bestQuestion = $question;
+            $candidates[] = [
+                'question' => $question,
+                'similarity' => $similarity,
+                'gap_diff' => $realDifficulty - $userScoreInCat, // Jarak kesulitan (semakin kecil semakin pas)
+                'debug_diff' => $realDifficulty,
+                'mapped_category' => $mainCategoryKey
+            ];
+        }
+
+        if (empty($candidates)) {
+            return ['error' => 'Kamu sudah menguasai materi level ini. Nantikan update scenario berikutnya!'];
+        }
+
+        // Mengurutkan kandidat berdasarkan Similiarity Terbesar dan Gap Diff Terkecil
+        usort($candidates, function ($a, $b) {
+            if (abs($a['similarity'] - $b['similarity']) > 0.0001) {
+                return $b['similarity'] <=> $a['similarity']; // Descending Sim
             }
-        }
+            return $a['gap_diff'] <=> $b['gap_diff']; // Ascending Distance
+        });
 
-        if (!$bestQuestion && $questions->isNotEmpty()) {
-            $bestQuestion = $questions->sortBy('difficulty')->first();
-        }
+        $best = $candidates[0];
+        $bestQuestion = $best['question'];
+        $bestCategoryKey = $best['mapped_category'];
 
-        if (!$bestQuestion) {
-            return ['error' => 'Belum ada konten skenario yang tersedia di database.'];
-        }
-
-        $categoryName = ucwords(str_replace(['_dan_', '_'], [' & ', ' '], $weakestCategory));
+        $categoryName = ucwords(str_replace(['_dan_', '_'], [' & ', ' '], $bestCategoryKey)); // Gunakan key standar untuk nama
+        $userCurrentScore = $userScores[$bestCategoryKey] ?? 0;
 
         return [
             'scenario_id' => $bestQuestion->id,
             'title' => $bestQuestion->title,
-            'reason' => "Fokus pada area lemah: $categoryName (skor {$userWeakestScore}/100)",
+            'difficulty_label' => $this->getDifficultyLabel($bestQuestion->difficulty),
+            'reason' => "Fokus pada area: $categoryName (Skor {$userCurrentScore}/100)",
             'expected_benefit' => "+{$bestQuestion->expected_benefit} points jika diselesaikan dengan benar",
-            'peer_insight' => $this->generatePeerInsight($weakestCategory)
+            'peer_insight' => $this->generatePeerInsight($bestCategoryKey),
+            // 'debug_raw_difficulty' => $bestQuestion->difficulty
         ];
     }
 
@@ -303,23 +356,15 @@ class RecommendationService
     }
 
     /**
-     * Mencari kategori dengan skor terendah
+     * Mempersiapkan Gap Vector (100 - Score) dari skor kategori untuk cosine
      */
-    private function findWeakestCategory(array $scores): string
-    {
-        asort($scores);
-        return array_key_first($scores);
-    }
-
-    /**
-     * Mempersiapkan vektor dari skor kategori untuk perhitungan cosine similarity
-     */
-    private function prepareVector(array $scores): array
+    private function prepareGapVector(array $scores): array
     {
         $categories = ['pendapatan', 'anggaran', 'tabungan_dan_dana_darurat', 'utang', 'investasi', 'asuransi_dan_proteksi', 'tujuan_jangka_panjang'];
         $vector = [];
         foreach ($categories as $cat) {
-            $vector[] = $scores[$cat] ?? 0;
+            $score = $scores[$cat] ?? 0;
+            $vector[$cat] = max(0, 100 - $score);
         }
         return $vector;
     }
@@ -337,7 +382,7 @@ class RecommendationService
             $vectorTemplate[$normalizedCategory] = $difficulty;
         }
 
-        return array_values($vectorTemplate);
+        return $vectorTemplate;
     }
     /**
      * Menghasilkan insight rekan sebaya berdasarkan kategori
@@ -359,11 +404,33 @@ class RecommendationService
         if ($score < 34) {
             return 1; // Pemula (0-33)
         }
-        
+
         if ($score < 67) {
             return 2; // Intermediate (34-66)
         }
-        
+
         return 3; // Advanced (67-100)
+    }
+
+    private function convertDifficulty($level): int
+    {
+        // Standar Mapping
+        if ($level <= 1.5)
+            return 35; // Basic
+        if ($level <= 2.5)
+            return 65; // Intermediate
+        return 90; // Advanced
+    }
+
+    /**
+     * Helper: Mendapatkan Label Difficulty untuk UI
+     */
+    private function getDifficultyLabel($level): string
+    {
+        if ($level <= 1.5)
+            return 'Basic';
+        if ($level <= 2.5)
+            return 'Medium';
+        return 'Advanced';
     }
 }
