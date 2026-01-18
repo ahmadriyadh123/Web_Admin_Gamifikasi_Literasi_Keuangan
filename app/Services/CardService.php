@@ -7,6 +7,7 @@ use App\Models\QuizCard;
 use App\Models\PlayerProfile;
 use App\Models\PlayerDecision;
 use App\Models\ParticipatesIn;
+use App\Models\BoardTile;
 use App\Services\InterventionService;
 use App\Services\PredictionService;
 use Illuminate\Support\Facades\DB;
@@ -95,8 +96,31 @@ class CardService
                 $session = $participation->session;
                 $gameState = json_decode($session->game_state, true) ?? [];
 
-                // Ubah phase agar client tahu event sudah selesai
-                $gameState['turn_phase'] = 'event_completed';
+                // Jika kartu memiliki target_tile, update posisi pemain dan turn_action
+                if (!is_null($card->target_tile)) {
+                    $oldPosition = $participation->position;
+                    $newPosition = $card->target_tile;
+                    
+                    // Update posisi pemain
+                    $participation->position = $newPosition;
+                    $participation->save();
+                    
+                    // Simpan detail pergerakan di game_state untuk referensi game client
+                    $gameState['current_turn_action'] = [
+                        'dice_value' => null, // Pergerakan dari kartu, bukan dadu
+                        'from_tile' => $oldPosition,
+                        'to_tile' => $newPosition,
+                        'landed_event_type' => 'card_movement',
+                        'landed_event_id' => $cardId
+                    ];
+                    
+                    // Set phase ke resolving_event agar client tahu harus tampilkan kartu dulu
+                    $gameState['turn_phase'] = 'resolving_event';
+                } else {
+                    // Kartu tanpa pergerakan, langsung selesai
+                    $gameState['turn_phase'] = 'event_completed';
+                }
+                
                 unset($gameState['active_event']);
 
                 $session->game_state = json_encode($gameState);
@@ -107,7 +131,7 @@ class CardService
             $this->logCardHistory($playerId, $cardId, $change);
 
             // 7. Format Response
-            return [
+            $response = [
                 'card_category' => ucfirst($affectedCategoryKey),
                 'title' => $card->title,
                 'narration' => $card->narration,
@@ -117,6 +141,17 @@ class CardService
                 'dice_preroll_result' => $dicePreroll, // null jika tidak ada dadu
                 'possible_tiles' => $possibleTiles     // null jika tidak ada dadu
             ];
+            
+            // Tambahkan info target tile jika ada movement
+            if (!is_null($card->target_tile)) {
+                $targetTile = BoardTile::where('position_index', $card->target_tile)->first();
+                $response['movement'] = [
+                    'target_tile_id' => $card->target_tile,
+                    'target_tile_name' => $targetTile ? $targetTile->name : 'Unknown'
+                ];
+            }
+            
+            return $response;
         });
     }
 
@@ -214,7 +249,31 @@ class CardService
                 $session = $participation->session;
                 $gameState = json_decode($session->game_state, true) ?? [];
 
-                $gameState['turn_phase'] = 'event_completed';
+                // Jika kartu memiliki target_tile, update posisi pemain dan turn_action
+                if (!is_null($card->target_tile)) {
+                    $oldPosition = $participation->position;
+                    $newPosition = $card->target_tile;
+                    
+                    // Update posisi pemain
+                    $participation->position = $newPosition;
+                    $participation->save();
+                    
+                    // Simpan detail pergerakan di game_state untuk referensi game client
+                    $gameState['current_turn_action'] = [
+                        'dice_value' => null, // Pergerakan dari kartu, bukan dadu
+                        'from_tile' => $oldPosition,
+                        'to_tile' => $newPosition,
+                        'landed_event_type' => 'card_movement',
+                        'landed_event_id' => $cardId
+                    ];
+                    
+                    // Set phase ke resolving_event agar client tahu harus tampilkan kartu dulu
+                    $gameState['turn_phase'] = 'resolving_event';
+                } else {
+                    // Kartu tanpa pergerakan, langsung selesai
+                    $gameState['turn_phase'] = 'event_completed';
+                }
+
                 unset($gameState['active_event']);
 
                 $session->game_state = json_encode($gameState);
@@ -225,7 +284,7 @@ class CardService
             $this->logCardHistory($playerId, $cardId, $change, 'risk_card');
 
             // 7. Format Response
-            return [
+            $response = [
                 'card_category' => ucfirst($affectedCategoryKey),
                 'title' => $card->title,
                 'narration' => $card->narration,
@@ -235,6 +294,17 @@ class CardService
                 'dice_preroll_result' => $dicePreroll,
                 'possible_tiles' => $possibleTiles
             ];
+            
+            // Tambahkan info target tile jika ada movement
+            if (!is_null($card->target_tile)) {
+                $targetTile = BoardTile::where('position_index', $card->target_tile)->first();
+                $response['movement'] = [
+                    'target_tile_id' => $card->target_tile,
+                    'target_tile_name' => $targetTile ? $targetTile->name : 'Unknown'
+                ];
+            }
+            
+            return $response;
         });
     }
 
