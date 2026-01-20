@@ -90,7 +90,8 @@ class MatchmakingService
             'player_order' => $newOrder,
             'connection_status' => 'connected',
             'is_ready' => false,
-            'joined_at' => now()
+            'joined_at' => now(),
+            'last_ping_at' => now()  // Set initial ping timestamp
         ]);
 
         return $newOrder;
@@ -249,6 +250,10 @@ class MatchmakingService
             $session->game_state = json_encode($gameState);
 
             $session->save();
+
+            // Update last_ping_at untuk semua player saat game start (prevent auto-disconnect)
+            ParticipatesIn::where('sessionId', $session->sessionId)
+                ->update(['last_ping_at' => now()]);
         }
 
         return ['ok' => true];
