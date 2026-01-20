@@ -42,11 +42,13 @@ class SessionService
 
         $session = $participation->session;
         
-        // Check dan auto-disconnect players yang timeout
-        $this->checkAndDisconnectTimeoutPlayers($session->sessionId, 10);
-        
-        // Reload participants setelah check timeout
-        $session->load('participants');
+        // Check timeout only for active sessions (not in lobby)
+        if ($session->status === 'active') {
+            $this->checkAndDisconnectTimeoutPlayers($session->sessionId, 10);
+            
+            // Reload participants setelah check timeout
+            $session->load('participants');
+        }
         
         $gameState = json_decode($session->game_state, true) ?? [];
         $turnPhase = $gameState['turn_phase'] ?? 'waiting';
