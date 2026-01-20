@@ -641,6 +641,16 @@ class SessionService
             }
         }
 
+        // Check if all players disconnected, set session to completed
+        $remainingConnected = ParticipatesIn::where('sessionId', $sessionId)
+            ->where('connection_status', 'connected')
+            ->count();
+
+        if ($remainingConnected === 0 && $session->status === 'active') {
+            $session->status = 'completed';
+            $session->save();
+        }
+
         return $timedOutPlayers->count();
     }
 }
