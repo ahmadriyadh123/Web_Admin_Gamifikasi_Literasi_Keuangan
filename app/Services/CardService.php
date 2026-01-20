@@ -73,16 +73,24 @@ class CardService
 
             $dicePreroll = null;
             $possibleTiles = null;
+            $targetPosition = null; // Position to move player to
 
             // Jika kartu memiliki target_tile, siapkan data untuk client
             if (!is_null($card->target_tile)) {
                 $targetTile = BoardTile::where('position_index', $card->target_tile)->first();
                 $possibleTiles = [$targetTile ? $targetTile->name : 'Unknown'];
                 $dicePreroll = 0; // Client akan ambil possible_tiles[0]
+                $targetPosition = $card->target_tile;
             } elseif ($card->action === 'roll_loss' || $card->action === 'random_choice') {
                 // Jika action membutuhkan random choice
-                $possibleTiles = ["Makan", "Transport", "Nongkrong"];
-                $dicePreroll = rand(0, 2); // Server tentukan hasil random
+                $tileOptions = BoardTile::whereIn('name', ["Makan", "Transport", "Nongkrong"])->get();
+                $possibleTiles = $tileOptions->pluck('name')->toArray();
+                $dicePreroll = rand(0, count($possibleTiles) - 1); // Server tentukan hasil random
+                
+                // Get target position from selected tile
+                if (isset($tileOptions[$dicePreroll])) {
+                    $targetPosition = $tileOptions[$dicePreroll]->position_index;
+                }
             }
 
             // 6. Simpan Perubahan ke Database
@@ -101,10 +109,10 @@ class CardService
                 $session = $participation->session;
                 $gameState = json_decode($session->game_state, true) ?? [];
 
-                // Jika kartu memiliki target_tile, update posisi pemain dan turn_action
-                if (!is_null($card->target_tile)) {
+                // Jika kartu memiliki target_tile atau random_choice dengan target position
+                if (!is_null($targetPosition)) {
                     $oldPosition = $participation->position;
-                    $newPosition = $card->target_tile;
+                    $newPosition = $targetPosition;
                     
                     // Update posisi pemain
                     $participation->position = $newPosition;
@@ -214,16 +222,24 @@ class CardService
             // 5. Logika Preroll / Possible Tiles
             $dicePreroll = null;
             $possibleTiles = null;
+            $targetPosition = null; // Position to move player to
 
             // Jika kartu memiliki target_tile, siapkan data untuk client
             if (!is_null($card->target_tile)) {
                 $targetTile = BoardTile::where('position_index', $card->target_tile)->first();
                 $possibleTiles = [$targetTile ? $targetTile->name : 'Unknown'];
                 $dicePreroll = 0; // Client akan ambil possible_tiles[0]
+                $targetPosition = $card->target_tile;
             } elseif ($card->action === 'roll_gain' || $card->action === 'random_choice') {
                 // Jika action membutuhkan random choice
-                $possibleTiles = ["Makan", "Transport"];
-                $dicePreroll = rand(0, 1); // Server tentukan hasil random
+                $tileOptions = BoardTile::whereIn('name', ["Makan", "Transport"])->get();
+                $possibleTiles = $tileOptions->pluck('name')->toArray();
+                $dicePreroll = rand(0, count($possibleTiles) - 1); // Server tentukan hasil random
+                
+                // Get target position from selected tile
+                if (isset($tileOptions[$dicePreroll])) {
+                    $targetPosition = $tileOptions[$dicePreroll]->position_index;
+                }
             }
 
             // 6. Simpan Perubahan
@@ -242,10 +258,10 @@ class CardService
                 $session = $participation->session;
                 $gameState = json_decode($session->game_state, true) ?? [];
 
-                // Jika kartu memiliki target_tile, update posisi pemain dan turn_action
-                if (!is_null($card->target_tile)) {
+                // Jika kartu memiliki target_tile atau random_choice dengan target position
+                if (!is_null($targetPosition)) {
                     $oldPosition = $participation->position;
-                    $newPosition = $card->target_tile;
+                    $newPosition = $targetPosition;
                     
                     // Update posisi pemain
                     $participation->position = $newPosition;
