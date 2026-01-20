@@ -65,12 +65,15 @@ class AuthController extends Controller
      */
     public function googleWebStart(Request $request)
     {
-        $state = Str::random(40);
+        // Use state from client (Unity/Web) if provided, otherwise generate new one
+        $state = $request->query('state') ?? Str::random(40);
         $locale = $request->query('locale', 'id_ID');
 
         // Simpan State & Locale sementara di Cache/Session
         // Expiry 5 menit
         \Illuminate\Support\Facades\Cache::put('oauth_state_' . $state, ['locale' => $locale], 300);
+
+        \Illuminate\Support\Facades\Log::info('OAUTH START - Using State: ' . $state . ' | From Client: ' . ($request->query('state') ? 'YES' : 'NO') . ' | Locale: ' . $locale);
 
         return \Laravel\Socialite\Facades\Socialite::driver('google')
             ->with(['state' => $state])
