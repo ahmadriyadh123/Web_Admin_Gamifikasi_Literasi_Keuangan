@@ -43,6 +43,7 @@ class PerformanceService
                 'tujuan_jangka_panjang' => $scores['tujuan_jangka_panjang'] ?? 0,
                 'overall' => round($overall)
             ],
+            'cluster' => $profile->cluster,
             'last_updated' => $profile->last_updated ? $profile->last_updated->toIso8601String() : null
         ];
     }

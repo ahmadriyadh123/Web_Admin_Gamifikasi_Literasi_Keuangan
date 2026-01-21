@@ -156,75 +156,6 @@ class PredictionService
     }
 
     /**
-     * Analyze player progress when they pause/stop the game
-     * Provides comprehensive analysis of gameplay so far
-     */
-    public function analyzePauseState(string $playerId)
-    {
-        try {
-            $profile = PlayerProfile::find($playerId);
-
-            if (!$profile) {
-                return ['error' => 'Player profile not found'];
-            }
-
-            // Get current prediction
-            $currentPrediction = $this->getCurrentPrediction($playerId);
-
-            // Get active session info
-            $participation = ParticipatesIn::where('playerId', $playerId)
-                ->whereHas('session', fn($q) => $q->where('status', 'active'))
-                ->with('session')
-                ->first();
-
-            if (!$participation) {
-                return ['error' => 'Player not in active session'];
-            }
-
-            $sessionId = $participation->sessionId;
-            $turnNumber = $participation->session->current_turn ?? 0;
-
-            // Calculate decision statistics
-            $decisions = PlayerDecision::where('player_id', $playerId)
-                ->where('session_id', $sessionId)
-                ->get();
-
-            $totalDecisions = $decisions->count();
-            $correctDecisions = $decisions->where('is_correct', true)->count();
-            $totalScoreChange = $decisions->sum('score_change');
-            $avgDecisionTime = $decisions->avg('decision_time_seconds');
-
-            // Breakdown by content type
-            $scenarioDecisions = $decisions->where('content_type', 'scenario')->count();
-            $quizDecisions = $decisions->where('content_type', 'quiz')->count();
-
-            // Calculate improvement rate
-            $accuracyRate = $totalDecisions > 0 ? ($correctDecisions / $totalDecisions) * 100 : 0;
-
-            return [
-                'player_id' => $playerId,
-                'session_id' => $sessionId,
-                'current_turn' => $turnNumber,
-                'profile_analysis' => $currentPrediction,
-                'gameplay_statistics' => [
-                    'total_decisions' => $totalDecisions,
-                    'correct_decisions' => $correctDecisions,
-                    'accuracy_rate' => round($accuracyRate, 2),
-                    'total_score_change' => $totalScoreChange,
-                    'avg_decision_time_seconds' => round($avgDecisionTime, 2),
-                    'scenarios_answered' => $scenarioDecisions,
-                    'quizzes_answered' => $quizDecisions
-                ],
-                'recommendations' => $this->generateRecommendations($currentPrediction, $accuracyRate)
-            ];
-
-        } catch (\Exception $e) {
-            Log::error("Pause analysis error for player {$playerId}: " . $e->getMessage());
-            return ['error' => $e->getMessage()];
-        }
-    }
-
-    /**
      * Final evaluation when session ends
      * Updates profile permanently and provides comprehensive report
      */
@@ -316,34 +247,6 @@ class PredictionService
         }
 
         return $improvements;
-    }
-
-    /**
-     * Generate personalized recommendations based on prediction and performance
-     */
-    private function generateRecommendations(array $prediction, float $accuracyRate)
-    {
-        $recommendations = [];
-
-        // Accuracy-based recommendations
-        if ($accuracyRate < 50) {
-            $recommendations[] = "Take your time to read questions carefully";
-            $recommendations[] = "Review financial literacy basics";
-        } elseif ($accuracyRate < 70) {
-            $recommendations[] = "You're on the right track, keep learning!";
-            $recommendations[] = "Focus on understanding consequences of decisions";
-        } else {
-            $recommendations[] = "Excellent decision-making! Keep it up!";
-            $recommendations[] = "Challenge yourself with more complex scenarios";
-        }
-
-        // Cluster-based recommendations
-        if (isset($prediction['weak_areas']) && !empty($prediction['weak_areas'])) {
-            $weakestArea = $prediction['weak_areas'][0] ?? 'Financial Planning';
-            $recommendations[] = "Strengthen your {$weakestArea} skills";
-        }
-
-        return $recommendations;
     }
 
     /**

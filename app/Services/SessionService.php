@@ -8,11 +8,19 @@ use App\Models\BoardTile;
 use App\Models\Config;
 use App\Models\Player;
 use App\Models\PlayerProfile;
+use App\Services\PredictionService;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SessionService
 {
+    protected $predictionService;
+
+    public function __construct(PredictionService $predictionService)
+    {
+        $this->predictionService = $predictionService;
+    }
     /*
      * Mengambil status sesi permainan yang sedang diikuti pemain:
      * mengecek apakah pemain berada di sesi aktif atau masih menunggu,
@@ -456,6 +464,15 @@ class SessionService
 
             $sessionId = $participation->sessionId;
             $session = $participation->session;
+
+            // Finalize player profile with ANN evaluation before leaving
+            try {
+                $finalEvaluation = $this->predictionService->finalizeSessionEvaluation($playerId, $sessionId);
+                Log::info("Player {$playerId} profile finalized on leave", ['evaluation' => $finalEvaluation]);
+            } catch (\Exception $e) {
+                Log::error("Failed to finalize player profile on leave: " . $e->getMessage());
+                // Continue with leave process even if evaluation fails
+            }
 
             // Mark player as disconnected
             $participation->connection_status = 'disconnected';

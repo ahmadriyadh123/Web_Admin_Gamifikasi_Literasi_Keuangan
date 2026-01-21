@@ -66,10 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/player/break', [SessionController::class, 'break']);
         Route::post('/leave', [SessionController::class, 'leave']);
 
-        // Prediction & Analysis Endpoints
+        // Prediction Endpoint
         Route::get('/predict/current', [PredictionController::class, 'getCurrentPrediction']);
-        Route::get('/analysis/pause', [PredictionController::class, 'analyzePause']);
-        // Note: /finish endpoint removed - session ends automatically when turn_number >= max_turns
     });
 
     Route::get('/tile/{id}', [BoardController::class, 'getTile']);
