@@ -48,6 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('matchmaking')->group(function () {
         Route::post('/join', [MatchmakingController::class, 'join']);
+        Route::post('/leave', [MatchmakingController::class, 'leave']);
         Route::post('/character/select', [MatchmakingController::class, 'selectCharacter']);
         Route::get('/status', [MatchmakingController::class, 'status']);
         Route::post('/ready', [MatchmakingController::class, 'ready']);

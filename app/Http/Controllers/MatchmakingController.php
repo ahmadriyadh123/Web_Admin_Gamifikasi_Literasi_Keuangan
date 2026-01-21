@@ -107,4 +107,27 @@ class MatchmakingController extends Controller
             return response()->json(['error' => $e->getMessage()], 400);
         }
     }
-}
+    /**
+     * POST /matchmaking/leave
+     * Keluar dari lobby sebelum game dimulai
+     */
+    public function leave(Request $request)
+    {
+        $user = $request->user();
+        if (!$user || !$user->player) {
+            return response()->json(['error' => 'Player profile not found'], 404);
+        }
+
+        try {
+            $result = $this->sessionService->leaveLobby($user->player->PlayerId);
+
+            if (isset($result['error'])) {
+                return response()->json($result, 404);
+            }
+
+            return response()->json($result, 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }}

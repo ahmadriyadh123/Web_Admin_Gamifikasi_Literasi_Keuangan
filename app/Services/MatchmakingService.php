@@ -258,4 +258,49 @@ class MatchmakingService
 
         return ['ok' => true];
     }
+
+    /**
+     * Keluar dari lobby sebelum game dimulai
+     */
+    public function leaveLobby(string $playerId)
+    {
+        return DB::transaction(function () use ($playerId) {
+            $participation = ParticipatesIn::where('playerId', $playerId)
+                ->whereHas('session', fn($q) => $q->where('status', 'waiting'))
+                ->first();
+
+            if (!$participation) {
+                return ['error' => 'Player is not in any waiting lobby'];
+            }
+
+            $sessionId = $participation->sessionId;
+            $session = $participation->session;
+
+            // Hapus player dari sesi
+            $participation->delete();
+
+            // Cek apakah masih ada player di sesi
+            $remainingPlayers = ParticipatesIn::where('sessionId', $sessionId)->count();
+
+            if ($remainingPlayers === 0) {
+                // Jika tidak ada player tersisa, hapus session
+                $session->delete();
+            } else {
+                // Reorder player_order untuk player yang tersisa
+                $remainingParticipations = ParticipatesIn::where('sessionId', $sessionId)
+                    ->orderBy('player_order')
+                    ->get();
+
+                foreach ($remainingParticipations as $index => $p) {
+                    $p->player_order = $index + 1;
+                    $p->save();
+                }
+            }
+
+            return [
+                'message' => 'Successfully left lobby',
+                'session_id' => $sessionId
+            ];
+        });
+    }
 }
