@@ -390,7 +390,7 @@ class RecommendationService
     private function generatePeerInsight(string $category): string
     {
         $categoryName = ucwords(str_replace(['_dan_', '_'], [' & ', ' '], $category));
-        return "Insight: Mayoritas pemain berhasil meningkatkan skor $categoryName mereka dalam 3 sesi latihan.";
+        return "Mayoritas pemain berhasil meningkatkan skor $categoryName mereka dalam 3 sesi latihan.";
     }
 
     /**
