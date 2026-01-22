@@ -72,11 +72,17 @@ class PlayerService
                     'username' => $name,
                     'role' => 'player',
                     'avatar' => $avatar,
-                    'passwordHash' => null
+                    'passwordHash' => null,
+                    'is_active' => true
                 ]);
                 $isNewUser = true;
             } else {
-                // Existing User - Sync Data
+                // Existing User - Check if banned
+                if (isset($user->is_active) && !$user->is_active) {
+                    throw new \Exception("Account has been banned. Reason: " . ($user->ban_reason ?? 'Violation of terms'));
+                }
+
+                // Sync Data
                 $user->update([
                     'username' => $name,
                     'avatar' => $avatar
@@ -172,6 +178,13 @@ class PlayerService
         $user = User::find($tokenRecord->userId);
         if (!$user)
             throw new \Exception("User not found");
+
+        // Check if user is banned
+        if (isset($user->is_active) && !$user->is_active) {
+            // Delete refresh token
+            DB::table('auth_tokens')->where('token', $refreshTokenInput)->delete();
+            throw new \Exception("Account has been banned. Reason: " . ($user->ban_reason ?? 'Violation of terms'));
+        }
 
         $player = $user->player;
 

@@ -30,8 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
             return route('login');
         });
         $middleware->alias([
-        'role' => \App\Http\Middleware\RoleMiddleware::class,
-    ]);
+            'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'check.banned' => \App\Http\Middleware\CheckBannedPlayer::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(function ($request, $e) {

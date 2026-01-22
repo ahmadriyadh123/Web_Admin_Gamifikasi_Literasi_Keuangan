@@ -37,7 +37,7 @@ Route::prefix('config')->group(function () {
     Route::get('/game', [ConfigController::class, 'game']);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'check.banned'])->group(function () {
     Route::prefix('profiling')->group(function () {
         Route::get('/status', [ProfilingController::class, 'status']);
         Route::get('/questions', [ProfilingController::class, 'questions']);

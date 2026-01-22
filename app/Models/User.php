@@ -19,10 +19,17 @@ class User extends Authenticatable
         'passwordHash',
         'role',
         'avatar',
+        'is_active',
+        'ban_reason'
     ];
     protected $hidden = [
         'passwordHash',
-        'google_id'
+        'google_id',
+        'ban_reason'
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 
     public function getAuthPassword()
