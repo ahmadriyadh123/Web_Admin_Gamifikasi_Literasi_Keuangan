@@ -33,7 +33,7 @@ class BoardService
                         return ['error' => 'Tile not found'];
 
                     // Mock content determination (simplified)
-                    $mockResultId = $this->determineContentId($tile);
+                    $mockResultId = $this->determineContentId($tile, $playerId);
 
                     return [
                         'title' => $tile->name,
@@ -68,7 +68,7 @@ class BoardService
 
             // 4. Tentukan Result ID (Konten)
             // Logika: Cek tipe tile, lalu ambil konten yang sesuai
-            $resultId = $this->determineContentId($tile);
+            $resultId = $this->determineContentId($tile, $playerId);
 
             // 5. Update Game State -> resolving_event
             $gameState = json_decode($session->game_state, true) ?? [];
@@ -97,17 +97,17 @@ class BoardService
     /**
      * Helper: Memilih konten berdasarkan tipe tile
      */
-    private function determineContentId($tile)
+    private function determineContentId($tile, $playerId = null)
     {
         // 1. Cek apakah ada konten statis (linked_content) di tile
         if (!empty($tile->linked_content)) {
             $linked = json_decode($tile->linked_content, true);
-            
+
             // Untuk special tiles, return special_id
             if ($tile->type === 'special' && isset($linked['special_id'])) {
                 return $linked['special_id'];
             }
-            
+
             if (!empty($linked['id'])) {
                 return $linked['id'];
             }
@@ -116,7 +116,16 @@ class BoardService
         // 2. Jika dinamis, pilih acak dari tabel terkait
         switch ($tile->type) {
             case 'scenario':
-                // Ambil scenario acak berdasarkan nama tile (exact match dengan kategori scenario)
+                // Gunakan ScenarioService untuk menentukan soal berdasarkan profil pemain
+                if ($playerId && $tile->name) {
+                    try {
+                        return app(ScenarioService::class)->determineScenario($playerId, $tile->name);
+                    } catch (\Exception $e) {
+                        // Fallback
+                    }
+                }
+
+                // Fallback logic lama (jika playerId null atau gagal)
                 $query = Scenario::query();
                 if ($tile->name) {
                     $query->where('category', $tile->name);
@@ -165,8 +174,8 @@ class BoardService
                 return ['error' => 'Player profile not found'];
             }
 
-            $lifetimeScores = is_string($profile->lifetime_scores) 
-                ? json_decode($profile->lifetime_scores, true) 
+            $lifetimeScores = is_string($profile->lifetime_scores)
+                ? json_decode($profile->lifetime_scores, true)
                 : ($profile->lifetime_scores ?? []);
 
             $affectedScores = [];
@@ -183,11 +192,11 @@ class BoardService
                     // Terjerat Utang - meningkatkan score utang (semakin tinggi = semakin buruk)
                     $currentDebt = $lifetimeScores['utang'] ?? 0;
                     $newDebt = max(0, min(100, $currentDebt + 15)); // +15 poin utang
-                    
+
                     $affectedScores = ['utang'];
                     $newScoreValues = [$newDebt];
                     $lifetimeScores['utang'] = $newDebt;
-                    
+
                     $message = 'Kamu terjerat utang! Hati-hati dalam mengelola pinjaman. Score utang meningkat.';
                     break;
 
@@ -195,11 +204,11 @@ class BoardService
                     // Dana Darurat Aman - meningkatkan score tabungan & dana darurat
                     $currentSavings = $lifetimeScores['tabungan_dan_dana_darurat'] ?? 0;
                     $newSavings = max(0, min(100, $currentSavings + 20)); // +20 poin
-                    
+
                     $affectedScores = ['tabungan_dan_dana_darurat'];
                     $newScoreValues = [$newSavings];
                     $lifetimeScores['tabungan_dan_dana_darurat'] = $newSavings;
-                    
+
                     $message = 'Dana daruratmu aman! Keuanganmu terlindungi dengan baik. Score tabungan & dana darurat meningkat.';
                     break;
 
@@ -208,18 +217,18 @@ class BoardService
                     $currentSavings = $lifetimeScores['tabungan_dan_dana_darurat'] ?? 0;
                     $currentInvestment = $lifetimeScores['investasi'] ?? 0;
                     $currentDebt = $lifetimeScores['utang'] ?? 0;
-                    
+
                     $newSavings = max(0, $currentSavings - 30);
                     $newInvestment = max(0, $currentInvestment - 20);
                     $newDebt = max(0, min(100, $currentDebt + 25));
-                    
+
                     $affectedScores = ['tabungan_dan_dana_darurat', 'investasi', 'utang'];
                     $newScoreValues = [$newSavings, $newInvestment, $newDebt];
-                    
+
                     $lifetimeScores['tabungan_dan_dana_darurat'] = $newSavings;
                     $lifetimeScores['investasi'] = $newInvestment;
                     $lifetimeScores['utang'] = $newDebt;
-                    
+
                     $message = 'Kamu bangkrut! Tabungan dan investasi berkurang drastis, sementara utang meningkat. Bangkit lagi!';
                     break;
 

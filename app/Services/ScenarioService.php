@@ -217,4 +217,49 @@ class ScenarioService
             return $response;
         });
     }
+
+    /**
+     * Menentukan skenario yang tepat untuk pemain berdasarkan cluster profil mereka.
+     * 
+     * Financial Novice & Financial Explorer -> Level 1
+     * Foundation Builder & Financial Architect -> Level 2
+     * Financial Sage -> Level 3
+     */
+    public function determineScenario(string $playerId, string $category)
+    {
+        $profile = PlayerProfile::find($playerId);
+        $cluster = $profile ? $profile->cluster : null;
+
+        $clusterDifficultyMap = [
+            'Financial Novice' => 1,
+            'HIGH RISK PLAYER' => 1,
+            'Financial Explorer' => 1,
+            'MODERATE RISK PLAYER' => 1,
+
+            'Foundation Builder' => 2,
+            'CAUTIOUS PLAYER' => 2,
+            'Financial Architect' => 2,
+            'STRATEGIC PLAYER' => 2,
+
+            'Financial Sage' => 3,
+            'SECURE PLAYER' => 3,
+        ];
+
+        $difficulty = $clusterDifficultyMap[$cluster] ?? 1;
+
+        // Cari scenario dengan kategori dan difficulty yang sesuai
+        $query = Scenario::where('category', $category)
+            ->where('difficulty', $difficulty);
+
+        $scenarioId = $query->inRandomOrder()->value('id');
+
+        // Fallback jika tidak ada soal di level tersebut, cari level lain di kategori sama
+        if (!$scenarioId) {
+            $scenarioId = Scenario::where('category', $category)
+                ->inRandomOrder()
+                ->value('id');
+        }
+
+        return $scenarioId ?? 'sc_default';
+    }
 }
