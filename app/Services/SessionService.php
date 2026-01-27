@@ -589,9 +589,11 @@ class SessionService
     public function checkAndDisconnectTimeoutPlayers(string $sessionId, int $timeoutSeconds = 40)
     {
         $timeoutThreshold = now()->subSeconds($timeoutSeconds);
+        $gracePeriodThreshold = now()->subSeconds(10); // Grace period 10 detik untuk player baru join
 
         $timedOutPlayers = ParticipatesIn::where('sessionId', $sessionId)
             ->where('connection_status', 'connected')
+            ->where('joined_at', '<', $gracePeriodThreshold) // Skip player yang baru join dalam 10 detik terakhir
             ->where(function ($query) use ($timeoutThreshold) {
                 $query->where('last_ping_at', '<', $timeoutThreshold)
                     ->orWhereNull('last_ping_at');
