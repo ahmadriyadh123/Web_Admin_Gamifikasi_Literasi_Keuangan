@@ -609,6 +609,14 @@ class SessionService
         $currentPlayerTimedOut = false;
 
         foreach ($timedOutPlayers as $player) {
+            // Di lobby (waiting), hapus player yang timeout agar tidak menghambat
+            if ($session->status === 'waiting') {
+                Log::info("Player {$player->playerId} timed out in lobby and removed from session {$sessionId}");
+                $player->delete(); // Hapus dari ParticipatesIn
+                continue;
+            }
+
+            // Di active game, mark disconnected dan finalize profile
             $player->connection_status = 'disconnected';
             $player->save();
 
