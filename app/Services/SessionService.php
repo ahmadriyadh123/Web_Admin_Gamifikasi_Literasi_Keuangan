@@ -610,6 +610,14 @@ class SessionService
             $player->connection_status = 'disconnected';
             $player->save();
 
+            // Finalize player profile when disconnected due to timeout
+            try {
+                $finalEvaluation = $this->predictionService->finalizeSessionEvaluation($player->playerId, $sessionId);
+                Log::info("Player {$player->playerId} profile finalized on timeout", ['evaluation' => $finalEvaluation]);
+            } catch (\Exception $e) {
+                Log::error("Failed to finalize player profile on timeout: " . $e->getMessage());
+            }
+
             // Check jika current player yang timeout
             if ($player->playerId === $currentPlayerId) {
                 $currentPlayerTimedOut = true;
